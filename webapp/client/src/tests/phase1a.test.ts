@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useCellStore } from './cellStore';
-import { useNotebookStore } from './notebookStore';
+import { useCellStore } from '../stores/cellStore';
+import { useNotebookStore } from '../stores/notebookStore';
 
 // Reset stores to initial state before each test
 beforeEach(() => {

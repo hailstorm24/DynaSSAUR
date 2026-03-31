@@ -1,7 +1,7 @@
 import { useCellStore } from '../stores/cellStore.ts';
 import { useNotebookStore } from '../stores/notebookStore.ts';
 import { useThemeStore } from '../stores/themeStore.ts';
-import { removeCell } from '../controllers/CellController.ts';
+import { removeCell, runCell } from '../controllers/CellController.ts';
 import { CodeEditor } from './CodeEditor.tsx';
 import { CellOutput } from './CellOutput.tsx';
 
@@ -62,7 +62,7 @@ export function Cell({ cellId }: CellProps) {
         >
           {executionLabel(cell.status, cell.executionCount)}
         </span>
-        <CellButton onClick={() => console.log('run', cellId)} color={btnColor} border={btnBorder}>▶ Run</CellButton>
+        <CellButton onClick={() => runCell(cellId)} color={btnColor} border={btnBorder}>▶ Run</CellButton>
         <CellButton onClick={() => moveCellUp(cellId)} color={btnColor} border={btnBorder}>↑</CellButton>
         <CellButton onClick={() => moveCellDown(cellId)} color={btnColor} border={btnBorder}>↓</CellButton>
         <CellButton onClick={() => removeCell(cellId)} color={btnColor} border={btnBorder} danger>

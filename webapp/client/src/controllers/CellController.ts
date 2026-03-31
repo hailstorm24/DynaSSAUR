@@ -1,5 +1,6 @@
 import { useCellStore } from '../stores/cellStore.ts';
 import { useNotebookStore } from '../stores/notebookStore.ts';
+import { queueCell } from './KernelController.ts';
 
 let cellCounter = 2;
 
@@ -21,8 +22,8 @@ export function removeCell(id: string): void {
 }
 
 /**
- * Run stub — no execution in Phase 1a.
+ * Queues a cell for execution in the kernel.
  */
-export function runCell(_id: string): void {
-  // Phase 1a: no-op stub
+export function runCell(id: string): void {
+  queueCell(id);
 }
