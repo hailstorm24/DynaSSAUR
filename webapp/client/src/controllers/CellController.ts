@@ -8,7 +8,7 @@ let cellCounter = 2;
  */
 export function addCell(): void {
   const newId = `cell-${cellCounter++}`;
-  useNotebookStore.getState().addCell();
+  useNotebookStore.getState().addCell(newId);
   useCellStore.getState().addCell(newId);
 }
 

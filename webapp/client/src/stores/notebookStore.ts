@@ -4,20 +4,17 @@ const DEFAULT_CELL_ID = 'cell-1';
 
 interface NotebookState {
   cellIds: string[];
-  addCell: () => void;
+  addCell: (id: string) => void;
   removeCell: (id: string) => void;
   moveCellUp: (id: string) => void;
   moveCellDown: (id: string) => void;
 }
 
-let cellCounter = 2;
-
 export const useNotebookStore = create<NotebookState>((set) => ({
   cellIds: [DEFAULT_CELL_ID],
 
-  addCell: () => {
-    const newId = `cell-${cellCounter++}`;
-    set((state) => ({ cellIds: [...state.cellIds, newId] }));
+  addCell: (id: string) => {
+    set((state) => ({ cellIds: [...state.cellIds, id] }));
   },
 
   removeCell: (id: string) => {
