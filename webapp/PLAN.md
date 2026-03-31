@@ -300,4 +300,6 @@ User clicks ▶ on Cell N
 - [ ] Inline error highlighting (map traceback line → CodeMirror gutter marker)
 - [ ] Restart Kernel flow (clears Python namespace, resets counters)
 - [ ] Notebook save/load via localStorage or JSON download
-- [ ] Dark/light theme toggle
+- [x] Dark/light theme toggle — GitHub Light/Dark themes via `@uiw/codemirror-theme-github`;
+  toggle button in top-right corner of `NotebookToolbar`; theme state in `useThemeStore`;
+  CodeMirror uses a `Compartment` for live theme switching without editor recreation

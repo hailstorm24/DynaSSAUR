@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { python } from '@codemirror/lang-python';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { Compartment } from '@codemirror/state';
+import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
+import { useThemeStore } from '../stores/themeStore.ts';
 
 interface CodeEditorProps {
   initialValue: string;
   onUpdate: (value: string) => void;
 }
 
+const themeCompartment = new Compartment();
+
 export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const isDark = useThemeStore((s) => s.isDark);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -23,7 +28,12 @@ export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
 
     const view = new EditorView({
       doc: initialValue,
-      extensions: [basicSetup, python(), oneDark, updateListener],
+      extensions: [
+        basicSetup,
+        python(),
+        themeCompartment.of(isDark ? githubDark : githubLight),
+        updateListener,
+      ],
       parent: containerRef.current,
     });
 
@@ -36,6 +46,13 @@ export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
     // initialValue and onUpdate are intentionally excluded — we only init once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!viewRef.current) return;
+    viewRef.current.dispatch({
+      effects: themeCompartment.reconfigure(isDark ? githubDark : githubLight),
+    });
+  }, [isDark]);
 
   return <div ref={containerRef} style={{ fontSize: '14px' }} />;
 }
