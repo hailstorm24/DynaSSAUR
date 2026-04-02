@@ -1,20 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
+import { keymap } from '@codemirror/view';
 import { python } from '@codemirror/lang-python';
-import { Compartment } from '@codemirror/state';
+import { Compartment, Prec } from '@codemirror/state';
 import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
 import { useThemeStore } from '../stores/themeStore.ts';
 
 interface CodeEditorProps {
   initialValue: string;
   onUpdate: (value: string) => void;
+  onRun?: () => void;
 }
 
 const themeCompartment = new Compartment();
 
-export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
+export function CodeEditor({ initialValue, onUpdate, onRun }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const onRunRef = useRef(onRun);
+  onRunRef.current = onRun;
   const isDark = useThemeStore((s) => s.isDark);
 
   useEffect(() => {
@@ -26,6 +30,18 @@ export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
       }
     });
 
+    const shiftEnterKeymap = Prec.highest(
+      keymap.of([
+        {
+          key: 'Shift-Enter',
+          run: () => {
+            onRunRef.current?.();
+            return true;
+          },
+        },
+      ]),
+    );
+
     const view = new EditorView({
       doc: initialValue,
       extensions: [
@@ -33,6 +49,7 @@ export function CodeEditor({ initialValue, onUpdate }: CodeEditorProps) {
         python(),
         themeCompartment.of(isDark ? githubDark : githubLight),
         updateListener,
+        shiftEnterKeymap,
       ],
       parent: containerRef.current,
     });

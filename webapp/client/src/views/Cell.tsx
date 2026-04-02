@@ -2,6 +2,7 @@ import { useCellStore } from '../stores/cellStore.ts';
 import { useNotebookStore } from '../stores/notebookStore.ts';
 import { useThemeStore } from '../stores/themeStore.ts';
 import { removeCell, runCell } from '../controllers/CellController.ts';
+import { executionLabel } from '../utils/executionLabel.ts';
 import { CodeEditor } from './CodeEditor.tsx';
 import { CellOutput } from './CellOutput.tsx';
 
@@ -9,20 +10,25 @@ interface CellProps {
   cellId: string;
 }
 
-function executionLabel(status: string, count: number | null): string {
-  if (status === 'running') return '[*]';
-  if (count !== null) return `[${count}]`;
-  return '[ ]';
-}
-
 export function Cell({ cellId }: CellProps) {
   const cell = useCellStore((s) => s.cells[cellId]);
   const updateSource = useCellStore((s) => s.updateSource);
   const moveCellUp = useNotebookStore((s) => s.moveCellUp);
   const moveCellDown = useNotebookStore((s) => s.moveCellDown);
+  const cellIds = useNotebookStore((s) => s.cellIds);
   const isDark = useThemeStore((s) => s.isDark);
 
   if (!cell) return null;
+
+  function handleShiftEnter() {
+    runCell(cellId);
+    const idx = cellIds.indexOf(cellId);
+    const nextId = cellIds[idx + 1];
+    if (nextId) {
+      const nextCell = document.querySelector(`[data-cell-id="${nextId}"] .cm-editor`) as HTMLElement | null;
+      nextCell?.focus();
+    }
+  }
 
   const bg = isDark ? '#1e1e1e' : '#ffffff';
   const border = isDark ? '#3c3c3c' : '#d0d7de';
@@ -33,6 +39,7 @@ export function Cell({ cellId }: CellProps) {
 
   return (
     <div
+      data-cell-id={cellId}
       style={{
         border: `1px solid ${border}`,
         borderRadius: '6px',
@@ -74,6 +81,7 @@ export function Cell({ cellId }: CellProps) {
       <CodeEditor
         initialValue={cell.source}
         onUpdate={(src) => updateSource(cellId, src)}
+        onRun={handleShiftEnter}
       />
 
       {/* Output */}
