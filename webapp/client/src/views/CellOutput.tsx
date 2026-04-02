@@ -1,5 +1,6 @@
 import type { CellOutput as CellOutputType } from '../models/CellModel.ts';
 import { useThemeStore } from '../stores/themeStore.ts';
+import { TurtleCanvas } from './TurtleCanvas.tsx';
 
 interface CellOutputProps {
   outputs: CellOutputType[];
@@ -26,19 +27,24 @@ export function CellOutput({ outputs }: CellOutputProps) {
         wordBreak: 'break-all',
       }}
     >
-      {outputs.map((output, idx) => (
-        <div
-          key={idx}
-          style={{
-            color:
-              output.type === 'stderr' || output.type === 'error'
-                ? '#ff6b6b'
-                : stdoutColor,
-          }}
-        >
-          {output.text}
-        </div>
-      ))}
+      {outputs.map((output, idx) => {
+        if (output.type === 'canvas') {
+          return <TurtleCanvas key={idx} commands={output.commands} />;
+        }
+        return (
+          <div
+            key={idx}
+            style={{
+              color:
+                output.type === 'stderr' || output.type === 'error'
+                  ? '#ff6b6b'
+                  : stdoutColor,
+            }}
+          >
+            {output.text}
+          </div>
+        );
+      })}
     </div>
   );
 }

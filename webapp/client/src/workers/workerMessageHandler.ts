@@ -7,7 +7,8 @@ export type WorkerMessage =
   | { type: 'stdout'; cellId: string; text: string }
   | { type: 'stderr'; cellId: string; text: string }
   | { type: 'error'; cellId: string; traceback: string }
-  | { type: 'done'; cellId: string; count: number };
+  | { type: 'done'; cellId: string; count: number }
+  | { type: 'turtle'; cellId: string; commands: unknown[] };
 
 /**
  * Route a message from the Pyodide worker to the appropriate store updates.
@@ -47,6 +48,23 @@ export function handleWorkerMessage(msg: WorkerMessage): void {
       }
       cellStore.setExecutionCount(msg.cellId, msg.count);
       kernelStore.dequeue();
+      break;
+    }
+
+    case 'turtle': {
+      const cell = cellStore.cells[msg.cellId];
+      if (!cell) break;
+      // Replace any existing canvas output, preserving text outputs.
+      const nonCanvas = cell.outputs.filter((o) => o.type !== 'canvas');
+      useCellStore.setState((state) => ({
+        cells: {
+          ...state.cells,
+          [msg.cellId]: {
+            ...state.cells[msg.cellId],
+            outputs: [...nonCanvas, { type: 'canvas', commands: msg.commands }],
+          },
+        },
+      }));
       break;
     }
   }

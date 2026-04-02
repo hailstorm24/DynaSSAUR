@@ -9,6 +9,7 @@
 //   { type: 'stderr',       cellId: string, text: string }
 //   { type: 'error',        cellId: string, traceback: string }
 //   { type: 'done',         cellId: string, count: number }
+//   { type: 'turtle',       cellId: string, commands: unknown[] }
 
 import { filterTraceback } from '../utils/filterTraceback.ts';
 
@@ -35,6 +36,20 @@ async function init(): Promise<void> {
         workerSelf.postMessage({ type: 'stderr', cellId: currentCellId, text });
       },
     });
+
+    // Load the turtle shim and register it as sys.modules['turtle'].
+    const shimResp = await fetch('/turtle_shim.py');
+    const shimSrc = await shimResp.text();
+    (pyodide as any).FS.writeFile('/turtle_shim.py', shimSrc);
+    await (pyodide as any).runPythonAsync(`
+import sys as _sys
+if '/' not in _sys.path:
+    _sys.path.insert(0, '/')
+import turtle_shim as _ts
+_sys.modules['turtle'] = _ts
+del _ts
+`);
+
     workerSelf.postMessage({ type: 'kernel_ready' });
   } catch (err: unknown) {
     workerSelf.postMessage({ type: 'kernel_error', message: String(err) });
@@ -80,6 +95,20 @@ workerSelf.onmessage = async (event: MessageEvent) => {
     const raw = err instanceof Error ? err.message : String(err);
     const filtered = filterTraceback(raw.split('\n')).join('\n');
     workerSelf.postMessage({ type: 'error', cellId, traceback: filtered });
+  }
+
+  // Extract any buffered turtle commands and post them before 'done'.
+  try {
+    const pyList = (pyodide as any).runPython(
+      'import turtle_shim as _ts; _cmds = list(_ts._commands); _ts._reset(); _cmds'
+    );
+    const commands: unknown[] = pyList.toJs({ dict_converter: Object.fromEntries });
+    pyList.destroy();
+    if (commands.length > 0) {
+      workerSelf.postMessage({ type: 'turtle', cellId, commands });
+    }
+  } catch {
+    // Turtle shim not loaded or no commands — safe to ignore.
   }
 
   executionCount++;
