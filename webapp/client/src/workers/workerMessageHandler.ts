@@ -1,5 +1,6 @@
 import { useCellStore } from '../stores/cellStore.ts';
 import { useKernelStore } from '../stores/kernelStore.ts';
+import { extractErrorLine } from '../utils/tracebackLineNumbers.ts';
 
 export type WorkerMessage =
   | { type: 'kernel_ready' }
@@ -36,15 +37,19 @@ export function handleWorkerMessage(msg: WorkerMessage): void {
       cellStore.addOutput(msg.cellId, { type: 'stderr', text: msg.text });
       break;
 
-    case 'error':
+    case 'error': {
       cellStore.addOutput(msg.cellId, { type: 'error', text: msg.traceback });
       cellStore.setStatus(msg.cellId, 'error');
+      cellStore.setErrorLine(msg.cellId, extractErrorLine(msg.traceback));
       break;
+    }
 
     case 'done': {
       // Only promote to success if no error output was already set.
       if (cellStore.cells[msg.cellId]?.status !== 'error') {
         cellStore.setStatus(msg.cellId, 'success');
+        // Clear any stale error line marker on successful run.
+        cellStore.setErrorLine(msg.cellId, null);
       }
       cellStore.setExecutionCount(msg.cellId, msg.count);
       kernelStore.dequeue();

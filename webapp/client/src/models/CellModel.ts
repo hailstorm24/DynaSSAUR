@@ -18,4 +18,5 @@ export interface CellModel {
   outputs: CellOutput[];
   executionCount: number | null;
   status: CellStatus;
+  errorLine: number | null;
 }

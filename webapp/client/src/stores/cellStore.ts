@@ -9,6 +9,7 @@ const makeDefaultCell = (id: string): CellModel => ({
   outputs: [],
   executionCount: null,
   status: 'idle',
+  errorLine: null,
 });
 
 interface CellState {
@@ -17,9 +18,11 @@ interface CellState {
   addOutput: (id: string, output: CellOutput) => void;
   clearOutputs: (id: string) => void;
   setStatus: (id: string, status: CellStatus) => void;
-  setExecutionCount: (id: string, count: number) => void;
+  setExecutionCount: (id: string, count: number | null) => void;
+  setErrorLine: (id: string, line: number | null) => void;
   addCell: (id: string) => void;
   removeCell: (id: string) => void;
+  loadCells: (ids: string[], sources: Record<string, { source: string }>) => void;
 }
 
 export const useCellStore = create<CellState>((set) => ({
@@ -75,6 +78,15 @@ export const useCellStore = create<CellState>((set) => ({
     }));
   },
 
+  setErrorLine: (id, line) => {
+    set((state) => ({
+      cells: {
+        ...state.cells,
+        [id]: { ...state.cells[id], errorLine: line },
+      },
+    }));
+  },
+
   addCell: (id) => {
     set((state) => ({
       cells: {
@@ -90,5 +102,13 @@ export const useCellStore = create<CellState>((set) => ({
       delete next[id];
       return { cells: next };
     });
+  },
+
+  loadCells: (ids, sources) => {
+    const cells: Record<string, CellModel> = {};
+    for (const id of ids) {
+      cells[id] = { ...makeDefaultCell(id), source: sources[id]?.source ?? '' };
+    }
+    set({ cells });
   },
 }));

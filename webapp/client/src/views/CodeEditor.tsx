@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
-import { keymap } from '@codemirror/view';
+import { keymap, Decoration, type DecorationSet } from '@codemirror/view';
 import { python } from '@codemirror/lang-python';
-import { Compartment, Prec } from '@codemirror/state';
+import { Compartment, Prec, StateField, StateEffect } from '@codemirror/state';
 import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
 import { useThemeStore } from '../stores/themeStore.ts';
 
@@ -10,11 +10,44 @@ interface CodeEditorProps {
   initialValue: string;
   onUpdate: (value: string) => void;
   onRun?: () => void;
+  errorLine?: number | null;
 }
 
 const themeCompartment = new Compartment();
 
-export function CodeEditor({ initialValue, onUpdate, onRun }: CodeEditorProps) {
+// Error line highlighting — module-level definitions, per-view state.
+const setErrorLineEffect = StateEffect.define<number | null>();
+
+const errorDecoField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const e of tr.effects) {
+      if (e.is(setErrorLineEffect)) {
+        if (e.value === null) return Decoration.none;
+        try {
+          const line = tr.state.doc.line(e.value);
+          return Decoration.set([
+            Decoration.line({ class: 'cm-error-line' }).range(line.from),
+          ]);
+        } catch {
+          return Decoration.none;
+        }
+      }
+    }
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+const errorLineTheme = EditorView.baseTheme({
+  '.cm-error-line': {
+    backgroundColor: 'rgba(255, 107, 107, 0.18) !important',
+    borderLeft: '3px solid #ff6b6b',
+  },
+});
+
+export function CodeEditor({ initialValue, onUpdate, onRun, errorLine }: CodeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onRunRef = useRef(onRun);
@@ -48,6 +81,8 @@ export function CodeEditor({ initialValue, onUpdate, onRun }: CodeEditorProps) {
         basicSetup,
         python(),
         themeCompartment.of(isDark ? githubDark : githubLight),
+        errorDecoField,
+        errorLineTheme,
         updateListener,
         shiftEnterKeymap,
       ],
@@ -70,6 +105,13 @@ export function CodeEditor({ initialValue, onUpdate, onRun }: CodeEditorProps) {
       effects: themeCompartment.reconfigure(isDark ? githubDark : githubLight),
     });
   }, [isDark]);
+
+  useEffect(() => {
+    if (!viewRef.current) return;
+    viewRef.current.dispatch({
+      effects: setErrorLineEffect.of(errorLine ?? null),
+    });
+  }, [errorLine]);
 
   return <div ref={containerRef} style={{ fontSize: '14px' }} />;
 }

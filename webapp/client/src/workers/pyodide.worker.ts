@@ -76,12 +76,13 @@ workerSelf.onmessage = async (event: MessageEvent) => {
   try {
     await (pyodide as any).loadPackagesFromImports(code);
   } catch (err: unknown) {
+    const errStr = String(err);
+    const pkgMatch = errStr.match(/'([^']+)'/) ?? errStr.match(/"([^"]+)"/);
+    const pkgName = pkgMatch ? pkgMatch[1] : 'This package';
     workerSelf.postMessage({
       type: 'error',
       cellId,
-      traceback:
-        `Package load error: ${String(err)}\n` +
-        `This package may not be supported in the browser.`,
+      traceback: `Package ${pkgName} is not supported in the browser.`,
     });
     currentCellId = null;
     executionCount++;

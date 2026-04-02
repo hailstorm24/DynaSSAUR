@@ -9,6 +9,7 @@ const execQueue: QueueItem[] = [];
 let worker: Worker | null = null;
 let workerReady = false;
 let isRunning = false;
+let interruptTimer: ReturnType<typeof setTimeout> | null = null;
 
 function createWorker(): Worker {
   return new Worker(
@@ -35,6 +36,11 @@ function onWorkerMessage(event: MessageEvent): void {
     workerReady = true;
     dispatchNext();
   } else if (msg.type === 'done') {
+    // If an interrupt timer is pending, the worker finished before the 2s timeout — cancel it.
+    if (interruptTimer !== null) {
+      clearTimeout(interruptTimer);
+      interruptTimer = null;
+    }
     execQueue.shift();
     isRunning = false;
     dispatchNext();
@@ -70,7 +76,50 @@ export function queueCell(cellId: string): void {
   dispatchNext();
 }
 
+export function stopCell(): void {
+  if (!isRunning || worker === null) return;
+
+  const runningItem = execQueue[0];
+  if (!runningItem) return;
+
+  const { cellId } = runningItem;
+  const cellStore = useCellStore.getState();
+
+  // Immediately mark the running cell as interrupted.
+  cellStore.addOutput(cellId, {
+    type: 'error',
+    text: 'KeyboardInterrupt: Execution interrupted by user.',
+  });
+  cellStore.setStatus(cellId, 'error');
+
+  // Reset all waiting cells back to idle and drain both queues.
+  for (const item of execQueue.slice(1)) {
+    cellStore.setStatus(item.cellId, 'idle');
+  }
+  execQueue.length = 0;
+  useKernelStore.getState().clearQueue();
+
+  // Schedule hard termination after 2 s if the worker doesn't finish on its own.
+  interruptTimer = setTimeout(() => {
+    interruptTimer = null;
+    if (worker !== null) {
+      worker.terminate();
+      worker = null;
+    }
+    workerReady = false;
+    isRunning = false;
+    // Reinitialize so subsequent cells can run.
+    initKernel();
+  }, 2000);
+}
+
 export function restartKernel(): void {
+  // Cancel any pending interrupt timer.
+  if (interruptTimer !== null) {
+    clearTimeout(interruptTimer);
+    interruptTimer = null;
+  }
+
   // Terminate the current worker and drain the queue.
   if (worker !== null) {
     worker.terminate();
@@ -83,10 +132,11 @@ export function restartKernel(): void {
   useKernelStore.getState().clearQueue();
   useKernelStore.getState().setStatus('idle');
 
-  // Reset all cell statuses.
-  const { cells, setStatus, clearOutputs } = useCellStore.getState();
+  // Reset all cell statuses and execution counters.
+  const { cells, setStatus, clearOutputs, setExecutionCount } = useCellStore.getState();
   for (const id of Object.keys(cells)) {
     setStatus(id, 'idle');
     clearOutputs(id);
+    setExecutionCount(id, null);
   }
 }

@@ -1,5 +1,5 @@
 import { addCell } from '../controllers/CellController.ts';
-import { runAll, restartKernel } from '../controllers/NotebookController.ts';
+import { runAll, restartKernel, downloadNotebook, importNotebook } from '../controllers/NotebookController.ts';
 import { useThemeStore } from '../stores/themeStore.ts';
 import { useKernelStore } from '../stores/kernelStore.ts';
 
@@ -35,6 +35,12 @@ export function NotebookToolbar() {
         </ToolbarButton>
         <ToolbarButton onClick={restartKernel} bg={btnBg} color={btnColor} border={btnBorder}>
           ↺ Restart Kernel
+        </ToolbarButton>
+        <ToolbarButton onClick={downloadNotebook} bg={btnBg} color={btnColor} border={btnBorder}>
+          ↓ Save JSON
+        </ToolbarButton>
+        <ToolbarButton onClick={importNotebook} bg={btnBg} color={btnColor} border={btnBorder}>
+          ↑ Load JSON
         </ToolbarButton>
 
         <KernelStatusBadge status={kernelStatus} isDark={isDark} />

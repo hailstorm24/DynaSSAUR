@@ -8,6 +8,7 @@ interface NotebookState {
   removeCell: (id: string) => void;
   moveCellUp: (id: string) => void;
   moveCellDown: (id: string) => void;
+  loadCellIds: (ids: string[]) => void;
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
@@ -42,4 +43,6 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       return { cellIds: next };
     });
   },
+
+  loadCellIds: (ids: string[]) => set({ cellIds: ids }),
 }));

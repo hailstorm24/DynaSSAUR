@@ -2,6 +2,7 @@ import { useCellStore } from '../stores/cellStore.ts';
 import { useNotebookStore } from '../stores/notebookStore.ts';
 import { useThemeStore } from '../stores/themeStore.ts';
 import { removeCell, runCell } from '../controllers/CellController.ts';
+import { stopCell } from '../controllers/KernelController.ts';
 import { executionLabel } from '../utils/executionLabel.ts';
 import { CodeEditor } from './CodeEditor.tsx';
 import { CellOutput } from './CellOutput.tsx';
@@ -36,6 +37,7 @@ export function Cell({ cellId }: CellProps) {
   const counterColor = isDark ? '#888' : '#888';
   const btnColor = isDark ? '#d4d4d4' : '#1f2328';
   const btnBorder = isDark ? '#444' : '#d0d7de';
+  const isRunning = cell.status === 'running';
 
   return (
     <div
@@ -69,7 +71,11 @@ export function Cell({ cellId }: CellProps) {
         >
           {executionLabel(cell.status, cell.executionCount)}
         </span>
-        <CellButton onClick={() => runCell(cellId)} color={btnColor} border={btnBorder}>▶ Run</CellButton>
+        {isRunning ? (
+          <CellButton onClick={stopCell} color="#ff6b6b" border={btnBorder}>■ Stop</CellButton>
+        ) : (
+          <CellButton onClick={() => runCell(cellId)} color={btnColor} border={btnBorder}>▶ Run</CellButton>
+        )}
         <CellButton onClick={() => moveCellUp(cellId)} color={btnColor} border={btnBorder}>↑</CellButton>
         <CellButton onClick={() => moveCellDown(cellId)} color={btnColor} border={btnBorder}>↓</CellButton>
         <CellButton onClick={() => removeCell(cellId)} color={btnColor} border={btnBorder} danger>
@@ -82,6 +88,7 @@ export function Cell({ cellId }: CellProps) {
         initialValue={cell.source}
         onUpdate={(src) => updateSource(cellId, src)}
         onRun={handleShiftEnter}
+        errorLine={cell.errorLine}
       />
 
       {/* Output */}

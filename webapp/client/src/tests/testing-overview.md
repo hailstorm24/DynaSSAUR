@@ -54,3 +54,28 @@ Use **Playwright** for these:
 | Python shim | pytest |
 | Full browser / E2E | Playwright |
 | Type safety (always-on) | TypeScript strict mode + ESLint |
+
+## Test files
+
+| File | Tool | What it covers |
+|---|---|---|
+| `phase1a.test.ts` | Vitest | CellModel shape, CellStore instantiation, NotebookStore initialization |
+| `phase1b.test.ts` | Vitest | KernelStore lifecycle, execution pipeline, `filterTraceback`, `handleWorkerMessage` |
+| `phase2.test.ts` | Vitest | NotebookStore mutations (add/remove/move), cell lookup, execution counter, `executionLabel` |
+| `phase3.test.ts` | Vitest | Canvas output type, `parseTurtleCommand`, `handleWorkerMessage` turtle branch |
+| `phase4.test.ts` | Vitest | Interrupt/stop queue behavior, `extractErrorLine`, `errorLine` store integration, kernel restart, notebook persistence (`loadSavedNotebook`, `loadCells`, `loadCellIds`), unsupported-package error display, theme toggle |
+
+## Setup
+
+`src/tests/setup.ts` provides a `localStorage` mock for the node test environment.
+It is loaded automatically via `setupFiles` in `vite.config.ts`.
+
+## What is not covered here (E2E only)
+
+- Real Stop/interrupt timing (2 s worker termination window)
+- CodeMirror gutter markers appearing and clearing
+- `import torch` displaying "Package X is not supported in the browser." in the real Pyodide runtime
+- Theme preference persisting across actual page reloads
+- `print("hello")` → cell output in a live browser
+- Kernel restart clearing Python namespace (`NameError` on previously defined variables)
+- Turtle `<canvas>` appearing in cell output
