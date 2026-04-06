@@ -1,6 +1,9 @@
-import { useCellStore } from '../stores/cellStore.ts';
-import { useKernelStore } from '../stores/kernelStore.ts';
-import { handleWorkerMessage, type WorkerMessage } from '../workers/workerMessageHandler.ts';
+import { useCellStore } from "../stores/cellStore.ts";
+import { useKernelStore } from "../stores/kernelStore.ts";
+import {
+  handleWorkerMessage,
+  type WorkerMessage,
+} from "../workers/workerMessageHandler.ts";
 
 type QueueItem = { cellId: string; code: string };
 
@@ -12,17 +15,21 @@ let isRunning = false;
 let interruptTimer: ReturnType<typeof setTimeout> | null = null;
 
 function createWorker(): Worker {
-  return new Worker(
-    new URL('../workers/pyodide.worker.ts', import.meta.url),
-    { type: 'module' },
-  );
+  return new Worker(new URL("../workers/pyodide.worker.ts", import.meta.url), {
+    type: "module",
+  });
 }
 
 function dispatchNext(): void {
   if (isRunning || !workerReady || execQueue.length === 0) return;
+
   isRunning = true;
   const { cellId, code } = execQueue[0];
-  worker!.postMessage({ type: 'run', cellId, code });
+
+  const cellStore = useCellStore.getState();
+  cellStore.setStatus(cellId, "running");
+
+  worker!.postMessage({ type: "run", cellId, code });
 }
 
 function onWorkerMessage(event: MessageEvent): void {
@@ -32,10 +39,10 @@ function onWorkerMessage(event: MessageEvent): void {
   handleWorkerMessage(msg);
 
   // KernelController-only side-effects: drive the local execution queue.
-  if (msg.type === 'kernel_ready') {
+  if (msg.type === "kernel_ready") {
     workerReady = true;
     dispatchNext();
-  } else if (msg.type === 'done') {
+  } else if (msg.type === "done") {
     // If an interrupt timer is pending, the worker finished before the 2s timeout — cancel it.
     if (interruptTimer !== null) {
       clearTimeout(interruptTimer);
@@ -48,15 +55,15 @@ function onWorkerMessage(event: MessageEvent): void {
 }
 
 export function initKernel(): void {
-  if (worker !== null) return; // Already initialized.
+  if (worker !== null) return;
 
-  useKernelStore.getState().setStatus('loading');
+  useKernelStore.getState().setStatus("loading");
 
   worker = createWorker();
   worker.onmessage = onWorkerMessage;
   worker.onerror = (err) => {
-    console.error('Pyodide worker error:', err);
-    useKernelStore.getState().setStatus('error');
+    console.error("Pyodide worker error:", err);
+    useKernelStore.getState().setStatus("error");
   };
 }
 
@@ -65,10 +72,11 @@ export function queueCell(cellId: string): void {
   if (worker === null) initKernel();
 
   const cellStore = useCellStore.getState();
-  const code = cellStore.cells[cellId]?.source ?? '';
+  const code = cellStore.cells[cellId]?.source ?? "";
 
   cellStore.clearOutputs(cellId);
-  cellStore.setStatus(cellId, 'running');
+  cellStore.setErrorLine(cellId, null);
+  cellStore.setStatus(cellId, "queued");
 
   execQueue.push({ cellId, code });
   useKernelStore.getState().enqueue(cellId);
@@ -87,14 +95,14 @@ export function stopCell(): void {
 
   // Immediately mark the running cell as interrupted.
   cellStore.addOutput(cellId, {
-    type: 'error',
-    text: 'KeyboardInterrupt: Execution interrupted by user.',
+    type: "error",
+    text: "KeyboardInterrupt: Execution interrupted by user.",
   });
-  cellStore.setStatus(cellId, 'error');
+  cellStore.setStatus(cellId, "error");
 
   // Reset all waiting cells back to idle and drain both queues.
   for (const item of execQueue.slice(1)) {
-    cellStore.setStatus(item.cellId, 'idle');
+    cellStore.setStatus(item.cellId, "idle");
   }
   execQueue.length = 0;
   useKernelStore.getState().clearQueue();
@@ -130,13 +138,14 @@ export function restartKernel(): void {
   execQueue.length = 0;
 
   useKernelStore.getState().clearQueue();
-  useKernelStore.getState().setStatus('idle');
+  useKernelStore.getState().setStatus("idle");
 
-  // Reset all cell statuses and execution counters.
-  const { cells, setStatus, clearOutputs, setExecutionCount } = useCellStore.getState();
+  const { cells, setStatus, clearOutputs, setExecutionCount, setErrorLine } =
+    useCellStore.getState();
   for (const id of Object.keys(cells)) {
-    setStatus(id, 'idle');
+    setStatus(id, "idle");
     clearOutputs(id);
     setExecutionCount(id, null);
+    setErrorLine(id, null);
   }
 }

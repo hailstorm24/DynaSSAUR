@@ -1,14 +1,14 @@
-import { create } from 'zustand';
-import type { CellModel, CellOutput, CellStatus } from '../models/CellModel.ts';
+import { create } from "zustand";
+import type { CellModel, CellOutput, CellStatus } from "../models/CellModel.ts";
 
-const DEFAULT_CELL_ID = 'cell-1';
+const DEFAULT_CELL_ID = "cell-1";
 
-const makeDefaultCell = (id: string): CellModel => ({
+export const makeDefaultCell = (id: string): CellModel => ({
   id,
   source: '# Write your Python code here\nprint("Hello, DynaSSAUR!")',
   outputs: [],
   executionCount: null,
-  status: 'idle',
+  status: "idle",
   errorLine: null,
 });
 
@@ -22,7 +22,11 @@ interface CellState {
   setErrorLine: (id: string, line: number | null) => void;
   addCell: (id: string) => void;
   removeCell: (id: string) => void;
-  loadCells: (ids: string[], sources: Record<string, { source: string }>) => void;
+  loadCells: (
+    ids: string[],
+    sources: Record<string, { source: string }>,
+  ) => void;
+  resetAllCells: () => void;
 }
 
 export const useCellStore = create<CellState>((set) => ({
@@ -107,8 +111,16 @@ export const useCellStore = create<CellState>((set) => ({
   loadCells: (ids, sources) => {
     const cells: Record<string, CellModel> = {};
     for (const id of ids) {
-      cells[id] = { ...makeDefaultCell(id), source: sources[id]?.source ?? '' };
+      cells[id] = { ...makeDefaultCell(id), source: sources[id]?.source ?? "" };
     }
     set({ cells });
+  },
+
+  resetAllCells: () => {
+    set({
+      cells: {
+        [DEFAULT_CELL_ID]: makeDefaultCell(DEFAULT_CELL_ID),
+      },
+    });
   },
 }));

@@ -6,7 +6,9 @@ A browser-based, notebook-style Python IDE — similar to Google Colab — that 
 
 ```bash
 cd webapp
+rm -rf node_modules package-lock.json
 npm install
+npm install -D tsx
 npm run dev
 ```
 
@@ -46,15 +48,15 @@ When you open the app, you see a vertical list of **cells** — each cell is a s
 
 Each cell has a small toolbar showing:
 
-| Element | Description |
-|---|---|
-| `[3]` | Execution counter — which run this cell was in the session |
-| `[ ]` | Cell has not been run yet |
-| `[*]` | Cell is currently running or queued |
-| `▶` | Run this cell |
-| `■` | Stop execution |
-| Move up / Move down | Reorder the cell in the notebook |
-| Delete | Remove the cell |
+| Element             | Description                                                |
+| ------------------- | ---------------------------------------------------------- |
+| `[3]`               | Execution counter — which run this cell was in the session |
+| `[ ]`               | Cell has not been run yet                                  |
+| `[*]`               | Cell is currently running or queued                        |
+| `▶`                 | Run this cell                                              |
+| `■`                 | Stop execution                                             |
+| Move up / Move down | Reorder the cell in the notebook                           |
+| Delete              | Remove the cell                                            |
 
 ---
 
@@ -122,6 +124,7 @@ You don't need to install packages manually. Just import them:
 **Loads automatically on import:** `numpy`, `pandas`, `scipy`, `matplotlib`, `scikit-learn`, `Pillow`, `sympy`, `networkx`, and ~100 more pre-compiled packages.
 
 **Pure-Python PyPI packages** can be installed at runtime:
+
 ```python
 import micropip
 await micropip.install("requests")
@@ -133,9 +136,9 @@ await micropip.install("requests")
 
 ## Notebook Toolbar Actions
 
-| Button | What it does |
-|---|---|
-| **Run All** | Runs every cell top-to-bottom in order |
-| **Restart Kernel** | Clears the Python namespace and resets all execution counters |
-| **Add Cell** | Appends a new empty cell at the bottom |
-| **Clear All Outputs** | Removes all output from every cell without re-running |
+| Button                | What it does                                                  |
+| --------------------- | ------------------------------------------------------------- |
+| **Run All**           | Runs every cell top-to-bottom in order                        |
+| **Restart Kernel**    | Clears the Python namespace and resets all execution counters |
+| **Add Cell**          | Appends a new empty cell at the bottom                        |
+| **Clear All Outputs** | Removes all output from every cell without re-running         |

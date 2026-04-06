@@ -1,12 +1,12 @@
-export type CellStatus = 'idle' | 'running' | 'success' | 'error';
+export type CellStatus = "idle" | "queued" | "running" | "success" | "error";
 
 export interface TextOutput {
-  type: 'stdout' | 'stderr' | 'error';
+  type: "stdout" | "stderr" | "error";
   text: string;
 }
 
 export interface CanvasOutput {
-  type: 'canvas';
+  type: "canvas";
   commands: unknown[];
 }
 
