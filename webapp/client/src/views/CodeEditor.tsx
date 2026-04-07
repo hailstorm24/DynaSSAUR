@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { keymap, Decoration, type DecorationSet } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
 import { python } from '@codemirror/lang-python';
 import { Compartment, Prec, StateField, StateEffect } from '@codemirror/state';
 import { githubDark, githubLight } from '@uiw/codemirror-theme-github';
@@ -84,6 +85,7 @@ export function CodeEditor({ initialValue, onUpdate, onRun, errorLine }: CodeEdi
         errorDecoField,
         errorLineTheme,
         updateListener,
+        keymap.of([indentWithTab]),
         shiftEnterKeymap,
       ],
       parent: containerRef.current,

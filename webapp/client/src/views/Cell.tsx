@@ -51,10 +51,11 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
     const idx = cellIds.indexOf(cellId);
     const nextId = cellIds[idx + 1];
     if (nextId) {
-      const nextCell = document.querySelector(
-        `[data-cell-id="${nextId}"] .cm-editor`,
+      const nextContent = document.querySelector(
+        `[data-cell-id="${nextId}"] .cm-content`,
       ) as HTMLElement | null;
-      nextCell?.focus();
+      nextContent?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      nextContent?.focus();
     }
   }
 
