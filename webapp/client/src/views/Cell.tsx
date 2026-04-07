@@ -18,9 +18,12 @@ import type {
 
 interface CellProps {
   cellId: string;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
-export function Cell({ cellId }: CellProps) {
+export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) {
   const cell = useCellStore((s) => s.cells[cellId]);
   const updateSource = useCellStore((s) => s.updateSource);
   const moveCellUp = useNotebookStore((s) => s.moveCellUp);
@@ -65,11 +68,21 @@ export function Cell({ cellId }: CellProps) {
         overflow: "hidden",
         background: shell.background,
         boxShadow: shell.shadow,
+        opacity: isDragging ? 0.4 : 1,
         transition:
-          "background 160ms ease, border-color 160ms ease, box-shadow 160ms ease",
+          "background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease",
       }}
     >
       <div
+        draggable
+        onDragStart={(e) => {
+          if ((e.target as HTMLElement).closest("button")) {
+            e.preventDefault();
+            return;
+          }
+          onDragStart?.();
+        }}
+        onDragEnd={onDragEnd}
         style={{
           display: "flex",
           alignItems: "center",
@@ -78,6 +91,8 @@ export function Cell({ cellId }: CellProps) {
           background: shell.toolbar,
           borderBottom: `1px solid ${shell.divider}`,
           flexWrap: "wrap",
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
         <span
