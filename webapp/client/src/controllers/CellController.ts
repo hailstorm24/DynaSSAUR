@@ -21,6 +21,7 @@ export function removeCell(id: string): void {
 }
 
 export function runCell(id: string): void {
+  useCellStore.getState().setVerification(id, "idle", "");
   queueCell(id);
 }
 
