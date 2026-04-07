@@ -97,6 +97,16 @@ export function Notebook() {
             </div>
           );
         })}
+        {draggingIndex !== null && (
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDropTarget({ index: cellIds.length - 1, position: "below" });
+            }}
+            onDrop={handleDrop}
+            style={{ height: "40px" }}
+          />
+        )}
       </div>
       <CoachChatBar />
     </div>
