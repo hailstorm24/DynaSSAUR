@@ -75,6 +75,8 @@ export function queueCell(cellId: string): void {
   const cell = cellStore.cells[cellId];
   if (!cell || (cell.type ?? "code") !== "code") return;
 
+  if (cell.status === "running" || cell.status === "queued") return;
+
   const code = cell.source;
   cellStore.clearOutputs(cellId);
   cellStore.setErrorLine(cellId, null);

@@ -17,7 +17,10 @@ export const useKernelStore = create<KernelState>((set) => ({
   setStatus: (status) => set({ status }),
 
   enqueue: (cellId) => {
-    set((state) => ({ queue: [...state.queue, cellId] }));
+    set((state) => {
+      if (state.queue.includes(cellId)) return state;
+      return { queue: [...state.queue, cellId] };
+    });
   },
 
   dequeue: () => {
