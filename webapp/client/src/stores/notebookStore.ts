@@ -1,7 +1,5 @@
 import { create } from "zustand";
 
-const DEFAULT_CELL_ID = "cell-1";
-
 interface NotebookState {
   cellIds: string[];
   addCell: (id: string) => void;
@@ -14,17 +12,16 @@ interface NotebookState {
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
-  cellIds: [DEFAULT_CELL_ID],
+  cellIds: [],
 
   addCell: (id: string) => {
     set((state) => ({ cellIds: [...state.cellIds, id] }));
   },
 
   removeCell: (id: string) => {
-    set((state) => {
-      const next = state.cellIds.filter((cid) => cid !== id);
-      return { cellIds: next.length > 0 ? next : [DEFAULT_CELL_ID] };
-    });
+    set((state) => ({
+      cellIds: state.cellIds.filter((cid) => cid !== id),
+    }));
   },
 
   moveCellUp: (id: string) => {
@@ -61,5 +58,5 @@ export const useNotebookStore = create<NotebookState>((set) => ({
 
   loadCellIds: (ids: string[]) => set({ cellIds: ids }),
 
-  resetNotebook: () => set({ cellIds: [DEFAULT_CELL_ID] }),
+  resetNotebook: () => set({ cellIds: [] }),
 }));

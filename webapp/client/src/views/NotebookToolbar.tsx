@@ -102,7 +102,7 @@ export function NotebookToolbar() {
           color={btnColor}
           border={btnBorder}
         >
-          🗑 Clear All
+          ⊘ Clear All
         </ToolbarButton>
 
         <ToolbarButton

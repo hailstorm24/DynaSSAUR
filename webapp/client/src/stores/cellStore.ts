@@ -7,8 +7,6 @@ import type {
   VerificationState,
 } from "../models/CellModel.ts";
 
-const DEFAULT_CELL_ID = "cell-1";
-
 function defaultSourceForType(type: CellType): string {
   switch (type) {
     case "instruction":
@@ -58,9 +56,7 @@ interface CellState {
 }
 
 export const useCellStore = create<CellState>((set) => ({
-  cells: {
-    [DEFAULT_CELL_ID]: makeCell(DEFAULT_CELL_ID, "code"),
-  },
+  cells: {},
 
   updateSource: (id, source) => {
     set((state) => ({
@@ -159,10 +155,6 @@ export const useCellStore = create<CellState>((set) => ({
   },
 
   resetAllCells: () => {
-    set({
-      cells: {
-        [DEFAULT_CELL_ID]: makeCell(DEFAULT_CELL_ID, "code"),
-      },
-    });
+    set({ cells: {} });
   },
 }));

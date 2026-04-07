@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNotebookStore } from "../stores/notebookStore.ts";
+import { useThemeStore } from "../stores/themeStore.ts";
 import { Cell } from "./Cell.tsx";
 import { NotebookToolbar } from "./NotebookToolbar.tsx";
 import { CoachChatBar } from "./CoachChatBar.tsx";
@@ -12,6 +13,7 @@ interface DropTarget {
 export function Notebook() {
   const cellIds = useNotebookStore((s) => s.cellIds);
   const reorderCells = useNotebookStore((s) => s.reorderCells);
+  const isDark = useThemeStore((s) => s.isDark);
 
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -50,6 +52,23 @@ export function Notebook() {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <NotebookToolbar />
       <div style={{ flex: 1, paddingBottom: "20px" }}>
+        {cellIds.length === 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "80px 20px",
+              color: isDark ? "#6e7681" : "#8c959f",
+              fontSize: "15px",
+              gap: "8px",
+            }}
+          >
+            <span style={{ fontSize: "32px" }}>🦖</span>
+            <span>No cells yet — use the toolbar above to add one.</span>
+          </div>
+        )}
         {cellIds.map((id, index) => {
           const showAbove =
             dropTarget?.index === index &&
