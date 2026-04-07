@@ -72,8 +72,10 @@ export function queueCell(cellId: string): void {
   if (worker === null) initKernel();
 
   const cellStore = useCellStore.getState();
-  const code = cellStore.cells[cellId]?.source ?? "";
+  const cell = cellStore.cells[cellId];
+  if (!cell || (cell.type ?? "code") !== "code") return;
 
+  const code = cell.source;
   cellStore.clearOutputs(cellId);
   cellStore.setErrorLine(cellId, null);
   cellStore.setStatus(cellId, "queued");
@@ -143,9 +145,11 @@ export function restartKernel(): void {
   const { cells, setStatus, clearOutputs, setExecutionCount, setErrorLine } =
     useCellStore.getState();
   for (const id of Object.keys(cells)) {
-    setStatus(id, "idle");
-    clearOutputs(id);
-    setExecutionCount(id, null);
-    setErrorLine(id, null);
+    if ((cells[id]?.type ?? "code") === "code") {
+      setStatus(id, "idle");
+      clearOutputs(id);
+      setExecutionCount(id, null);
+      setErrorLine(id, null);
+    }
   }
 }

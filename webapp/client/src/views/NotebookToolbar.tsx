@@ -1,4 +1,4 @@
-import { addCell } from "../controllers/CellController.ts";
+import { addBlock } from "../controllers/CellController.ts";
 import {
   runAll,
   restartKernel,
@@ -21,13 +21,22 @@ export function NotebookToolbar() {
   const btnBorder = isDark ? "#555" : "#d0d7de";
 
   return (
-    <div style={{ background: bg, borderBottom: `1px solid ${border}` }}>
+    <div
+      style={{
+        background: bg,
+        borderBottom: `1px solid ${border}`,
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+      }}
+    >
       <div
         style={{
           display: "flex",
           gap: "8px",
           padding: "8px 16px",
           alignItems: "center",
+          flexWrap: "wrap",
         }}
       >
         <span
@@ -37,12 +46,36 @@ export function NotebookToolbar() {
         </span>
 
         <ToolbarButton
-          onClick={addCell}
+          onClick={() => addBlock("instruction")}
           bg={btnBg}
           color={btnColor}
           border={btnBorder}
         >
-          + Add Cell
+          + Instruction
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => addBlock("task")}
+          bg={btnBg}
+          color={btnColor}
+          border={btnBorder}
+        >
+          + Task
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => addBlock("code")}
+          bg={btnBg}
+          color={btnColor}
+          border={btnBorder}
+        >
+          + Code
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => addBlock("feedback")}
+          bg={btnBg}
+          color={btnColor}
+          border={btnBorder}
+        >
+          + Feedback
         </ToolbarButton>
 
         <ToolbarButton
@@ -51,7 +84,7 @@ export function NotebookToolbar() {
           color={btnColor}
           border={btnBorder}
         >
-          ▶ Run All
+          ▶ Run All Code
         </ToolbarButton>
 
         <ToolbarButton
@@ -104,7 +137,6 @@ export function NotebookToolbar() {
         </div>
       </div>
 
-      {/* Loading bar — visible only while Pyodide is initializing */}
       {kernelStatus === "loading" && (
         <div
           style={{
@@ -188,8 +220,8 @@ function ToolbarButton({
         background: bg,
         color,
         border: `1px solid ${border}`,
-        borderRadius: "4px",
-        padding: "4px 12px",
+        borderRadius: "999px",
+        padding: "6px 12px",
         cursor: "pointer",
         fontSize: "13px",
       }}

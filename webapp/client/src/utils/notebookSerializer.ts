@@ -1,8 +1,8 @@
-import type { CellModel } from '../models/CellModel.ts';
+import type { CellModel, CellType } from "../models/CellModel.ts";
 
 export interface NotebookData {
   cellIds: string[];
-  cells: Record<string, { source: string }>;
+  cells: Record<string, { source: string; type: CellType }>;
 }
 
 /**
@@ -16,7 +16,13 @@ export function serializeNotebook(
   return {
     cellIds,
     cells: Object.fromEntries(
-      cellIds.map((id) => [id, { source: cells[id]?.source ?? '' }]),
+      cellIds.map((id) => [
+        id,
+        {
+          source: cells[id]?.source ?? "",
+          type: cells[id]?.type ?? "code",
+        },
+      ]),
     ),
   };
 }
@@ -25,7 +31,9 @@ export function serializeNotebook(
  * Validate that an unknown value is a well-formed NotebookData object.
  */
 export function isValidNotebookData(data: unknown): data is NotebookData {
-  if (!data || typeof data !== 'object') return false;
+  if (!data || typeof data !== "object") return false;
   const d = data as Record<string, unknown>;
-  return Array.isArray(d.cellIds) && typeof d.cells === 'object' && d.cells !== null;
+  return (
+    Array.isArray(d.cellIds) && typeof d.cells === "object" && d.cells !== null
+  );
 }

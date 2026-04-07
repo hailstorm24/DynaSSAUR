@@ -11,8 +11,12 @@ import {
  */
 export function runAll(): void {
   const cellIds = useNotebookStore.getState().cellIds;
+  const cells = useCellStore.getState().cells;
+
   for (const id of cellIds) {
-    queueCell(id);
+    if ((cells[id]?.type ?? "code") === "code") {
+      queueCell(id);
+    }
   }
 }
 
