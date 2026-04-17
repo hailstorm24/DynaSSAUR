@@ -8,11 +8,21 @@ import {
 } from "../controllers/NotebookController.ts";
 import { useThemeStore } from "../stores/themeStore.ts";
 import { useKernelStore } from "../stores/kernelStore.ts";
+import { useAppStore } from "../stores/appStore.ts";
+import { useAssignmentStore } from "../stores/assignmentStore.ts";
 
 export function NotebookToolbar() {
   const isDark = useThemeStore((s) => s.isDark);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const kernelStatus = useKernelStore((s) => s.status);
+  const view = useAppStore((s) => s.view);
+  const currentId = useAppStore((s) => s.currentAssignmentId);
+  const getAssignment = useAssignmentStore((s) => s.getAssignment);
+
+  const isSandbox = view === "sandbox";
+  const assignmentTitle = !isSandbox && currentId
+    ? (getAssignment(currentId)?.title ?? "Assignment")
+    : null;
 
   const bg = isDark ? "#252526" : "#f6f8fa";
   const border = isDark ? "#3c3c3c" : "#d0d7de";
@@ -39,89 +49,50 @@ export function NotebookToolbar() {
           flexWrap: "wrap",
         }}
       >
-        <span
-          style={{ fontWeight: "bold", marginRight: "8px", fontSize: "15px" }}
-        >
-          DynaSSAUR 🦖
+        <span style={{ fontWeight: "bold", marginRight: "8px", fontSize: "15px" }}>
+          {assignmentTitle ?? "Sandbox 🧪"}
         </span>
 
-        <ToolbarButton
-          onClick={() => addBlock("instruction")}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          + Instruction
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => addBlock("task")}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          + Task
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => addBlock("code")}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          + Code
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => addBlock("feedback")}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          + Feedback
-        </ToolbarButton>
+        {isSandbox && (
+          <>
+            <ToolbarButton onClick={() => addBlock("instruction")} bg={btnBg} color={btnColor} border={btnBorder}>
+              + Instruction
+            </ToolbarButton>
+            <ToolbarButton onClick={() => addBlock("task")} bg={btnBg} color={btnColor} border={btnBorder}>
+              + Task
+            </ToolbarButton>
+            <ToolbarButton onClick={() => addBlock("code")} bg={btnBg} color={btnColor} border={btnBorder}>
+              + Code
+            </ToolbarButton>
+            <ToolbarButton onClick={() => addBlock("feedback")} bg={btnBg} color={btnColor} border={btnBorder}>
+              + Feedback
+            </ToolbarButton>
+          </>
+        )}
 
-        <ToolbarButton
-          onClick={runAll}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
+        <ToolbarButton onClick={runAll} bg={btnBg} color={btnColor} border={btnBorder}>
           ▶ Run All Code
         </ToolbarButton>
 
-        <ToolbarButton
-          onClick={restartKernel}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
+        <ToolbarButton onClick={restartKernel} bg={btnBg} color={btnColor} border={btnBorder}>
           ↺ Restart Kernel
         </ToolbarButton>
 
-        <ToolbarButton
-          onClick={clearAllCells}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          ⊘ Clear All
-        </ToolbarButton>
+        {isSandbox && (
+          <ToolbarButton onClick={clearAllCells} bg={btnBg} color={btnColor} border={btnBorder}>
+            ⊘ Clear All
+          </ToolbarButton>
+        )}
 
-        <ToolbarButton
-          onClick={downloadNotebook}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
+        <ToolbarButton onClick={downloadNotebook} bg={btnBg} color={btnColor} border={btnBorder}>
           ↓ Save JSON
         </ToolbarButton>
 
-        <ToolbarButton
-          onClick={importNotebook}
-          bg={btnBg}
-          color={btnColor}
-          border={btnBorder}
-        >
-          ↑ Load JSON
-        </ToolbarButton>
+        {isSandbox && (
+          <ToolbarButton onClick={importNotebook} bg={btnBg} color={btnColor} border={btnBorder}>
+            ↑ Load JSON
+          </ToolbarButton>
+        )}
 
         <KernelStatusBadge status={kernelStatus} isDark={isDark} />
 

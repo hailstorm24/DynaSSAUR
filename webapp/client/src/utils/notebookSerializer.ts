@@ -1,19 +1,30 @@
 import type { CellModel, CellType } from "../models/CellModel.ts";
 
+export interface NotebookMetadata {
+  title: string;
+  step: number;
+  totalSteps: number;
+}
+
 export interface NotebookData {
+  metadata: NotebookMetadata;
   cellIds: string[];
   cells: Record<string, { source: string; type: CellType }>;
 }
 
-/**
- * Serialize cell data into a plain JSON-safe notebook representation.
- * Only source code is persisted; outputs and execution state are transient.
- */
+export const DEFAULT_SANDBOX_METADATA: NotebookMetadata = {
+  title: "Sandbox",
+  step: 1,
+  totalSteps: 1,
+};
+
 export function serializeNotebook(
   cellIds: string[],
   cells: Record<string, CellModel>,
+  metadata: NotebookMetadata = DEFAULT_SANDBOX_METADATA,
 ): NotebookData {
   return {
+    metadata,
     cellIds,
     cells: Object.fromEntries(
       cellIds.map((id) => [
@@ -27,9 +38,6 @@ export function serializeNotebook(
   };
 }
 
-/**
- * Validate that an unknown value is a well-formed NotebookData object.
- */
 export function isValidNotebookData(data: unknown): data is NotebookData {
   if (!data || typeof data !== "object") return false;
   const d = data as Record<string, unknown>;

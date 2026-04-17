@@ -1,6 +1,7 @@
 import { useCellStore } from "../stores/cellStore.ts";
 import { useNotebookStore } from "../stores/notebookStore.ts";
 import { useThemeStore } from "../stores/themeStore.ts";
+import { useAppStore } from "../stores/appStore.ts";
 import {
   removeCell,
   runCell,
@@ -30,6 +31,7 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
   const moveCellDown = useNotebookStore((s) => s.moveCellDown);
   const cellIds = useNotebookStore((s) => s.cellIds);
   const isDark = useThemeStore((s) => s.isDark);
+  const isSandbox = useAppStore((s) => s.view === "sandbox");
 
   if (!cell) return null;
 
@@ -75,9 +77,9 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
       }}
     >
       <div
-        draggable
+        draggable={isSandbox}
         onDragStart={(e) => {
-          if ((e.target as HTMLElement).closest("button")) {
+          if (!isSandbox || (e.target as HTMLElement).closest("button")) {
             e.preventDefault();
             return;
           }
@@ -92,7 +94,7 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
           background: shell.toolbar,
           borderBottom: `1px solid ${shell.divider}`,
           flexWrap: "wrap",
-          cursor: "grab",
+          cursor: isSandbox ? "grab" : "default",
           userSelect: "none",
         }}
       >
@@ -135,28 +137,19 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
           </>
         )}
 
-        <CellButton
-          onClick={() => moveCellUp(cellId)}
-          color={btnColor}
-          border={btnBorder}
-        >
-          ↑
-        </CellButton>
-        <CellButton
-          onClick={() => moveCellDown(cellId)}
-          color={btnColor}
-          border={btnBorder}
-        >
-          ↓
-        </CellButton>
-        <CellButton
-          onClick={() => removeCell(cellId)}
-          color={btnColor}
-          border={btnBorder}
-          danger
-        >
-          ✕
-        </CellButton>
+        {isSandbox && (
+          <>
+            <CellButton onClick={() => moveCellUp(cellId)} color={btnColor} border={btnBorder}>
+              ↑
+            </CellButton>
+            <CellButton onClick={() => moveCellDown(cellId)} color={btnColor} border={btnBorder}>
+              ↓
+            </CellButton>
+            <CellButton onClick={() => removeCell(cellId)} color={btnColor} border={btnBorder} danger>
+              ✕
+            </CellButton>
+          </>
+        )}
 
         <div
           style={{
@@ -192,6 +185,7 @@ export function Cell({ cellId, isDragging, onDragStart, onDragEnd }: CellProps) 
           onChange={(value) => updateSource(cellId, value)}
           type={cellType}
           isDark={isDark}
+          readOnly={!isSandbox}
         />
       )}
     </div>
@@ -204,34 +198,30 @@ function TextBlockEditor({
   onChange,
   type,
   isDark,
+  readOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type: CellType;
   isDark: boolean;
+  readOnly?: boolean;
 }) {
   const minHeight = type === "instruction" ? 150 : 110;
 
   return (
     <div style={{ padding: "14px 16px 16px" }}>
-      <div
-        style={{
-          fontWeight: 700,
-          fontSize: "14px",
-          marginBottom: "10px",
-          opacity: 0.9,
-        }}
-      >
+      <div style={{ fontWeight: 700, fontSize: "14px", marginBottom: "10px", opacity: 0.9 }}>
         {label}
       </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        readOnly={readOnly}
         style={{
           width: "100%",
           minHeight,
-          resize: "vertical",
+          resize: readOnly ? "none" : "vertical",
           borderRadius: "12px",
           border: `1px solid ${isDark ? "#444" : "#d0d7de"}`,
           padding: "12px 14px",
@@ -241,6 +231,7 @@ function TextBlockEditor({
           lineHeight: 1.5,
           fontFamily: "inherit",
           boxSizing: "border-box",
+          cursor: readOnly ? "default" : "text",
         }}
       />
     </div>
