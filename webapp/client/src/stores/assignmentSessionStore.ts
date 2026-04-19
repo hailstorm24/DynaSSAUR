@@ -18,17 +18,20 @@ const initialState: AssignmentSessionModel = {
 };
 
 interface AssignmentSessionState extends AssignmentSessionModel {
+  apiError: string | null;
   initSession: (files: UploadedFiles, summaryBlock: SummaryBlock) => void;
   appendBlock: (block: Block) => void;
   updateStudentContent: (index: number, content: string) => void;
   setEvalState: (index: number, evalState: EvalState) => void;
   appendChatMessage: (index: number, message: ChatMessage) => void;
   setStatus: (status: AssignmentSessionModel['status']) => void;
+  setApiError: (msg: string | null) => void;
   reset: () => void;
 }
 
 export const useAssignmentSessionStore = create<AssignmentSessionState>((set, get) => ({
   ...initialState,
+  apiError: null,
 
   initSession: (files, summaryBlock) => {
     set({
@@ -72,8 +75,12 @@ export const useAssignmentSessionStore = create<AssignmentSessionState>((set, ge
     set({ status });
   },
 
+  setApiError: (msg) => {
+    set({ apiError: msg });
+  },
+
   reset: () => {
     localStorage.removeItem(SESSION_STORAGE_KEY);
-    set(initialState);
+    set({ ...initialState, apiError: null });
   },
 }));

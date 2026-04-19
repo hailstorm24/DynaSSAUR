@@ -1,6 +1,4 @@
 CLAUDE DISREGARD THIS FILE
 
 features i think of that i want to add later:
-- find a less stupid colors scheme
-- delete doesn't always work
-- toggle between cells / filesystem
+- reasonable way to upload/download mid session. sidebar working

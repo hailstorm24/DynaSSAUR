@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
+import { useEvaluateCell } from '../../hooks/useEvaluateCell.ts';
+import { useSendChat } from '../../hooks/useSendChat.ts';
 import type { PlanningBlock as PlanningBlockType } from '../../models/AssignmentSessionModel.ts';
 
 interface Props {
@@ -13,7 +15,9 @@ interface Props {
 export function PlanningBlock({ block, index, stepNumber, isActive }: Props) {
   const isDark = useThemeStore((s) => s.isDark);
   const updateStudentContent = useAssignmentSessionStore((s) => s.updateStudentContent);
-  const appendChatMessage = useAssignmentSessionStore((s) => s.appendChatMessage);
+
+  const handleEvaluate = useEvaluateCell(index, 'planning');
+  const { sendChat, loading: chatLoading } = useSendChat(index);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatDraft, setChatDraft] = useState('');
@@ -35,7 +39,7 @@ export function PlanningBlock({ block, index, stepNumber, isActive }: Props) {
   function handleSendChat() {
     const trimmed = chatDraft.trim();
     if (!trimmed) return;
-    appendChatMessage(index, { role: 'user', content: trimmed });
+    sendChat(trimmed);
     setChatDraft('');
   }
 
@@ -132,7 +136,7 @@ export function PlanningBlock({ block, index, stepNumber, isActive }: Props) {
           Chat
         </ActionButton>
         <ActionButton
-          onClick={() => {}}
+          onClick={handleEvaluate}
           disabled={evaluateDisabled}
           isDark={isDark}
           primary
@@ -154,6 +158,7 @@ export function PlanningBlock({ block, index, stepNumber, isActive }: Props) {
           onDraftChange={setChatDraft}
           onSend={handleSendChat}
           onClose={() => setChatOpen(false)}
+          loading={chatLoading}
           isDark={isDark}
         />
       )}
@@ -187,6 +192,7 @@ function ChatDrawer({
   onDraftChange,
   onSend,
   onClose,
+  loading,
   isDark,
 }: {
   history: { role: 'user' | 'assistant'; content: string }[];
@@ -194,6 +200,7 @@ function ChatDrawer({
   onDraftChange: (v: string) => void;
   onSend: () => void;
   onClose: () => void;
+  loading: boolean;
   isDark: boolean;
 }) {
   const border = isDark ? '#3c3c3c' : '#d0d7de';
@@ -273,11 +280,17 @@ function ChatDrawer({
         ))}
       </div>
 
+      {loading && (
+        <div style={{ padding: '0 14px 8px', fontSize: '13px', color: textMuted, fontStyle: 'italic' }}>
+          Coach is thinking…
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '8px', padding: '10px 14px' }}>
         <input
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSend(); } }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !loading) { e.preventDefault(); onSend(); } }}
+          disabled={loading}
           placeholder="Ask for a hint or clarification…"
           style={{
             flex: 1,
@@ -288,17 +301,19 @@ function ChatDrawer({
             color: textMain,
             fontSize: '14px',
             outline: 'none',
+            opacity: loading ? 0.6 : 1,
           }}
         />
         <button
           onClick={onSend}
+          disabled={loading}
           style={{
             border: 'none',
             borderRadius: '999px',
             padding: '8px 16px',
-            background: '#3b82f6',
-            color: '#fff',
-            cursor: 'pointer',
+            background: loading ? (isDark ? '#2a2a2a' : '#e5e7eb') : '#3b82f6',
+            color: loading ? (isDark ? '#6b7280' : '#9ca3af') : '#fff',
+            cursor: loading ? 'not-allowed' : 'pointer',
             fontWeight: 700,
             fontSize: '14px',
           }}

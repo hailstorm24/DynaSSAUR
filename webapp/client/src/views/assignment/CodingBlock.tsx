@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
+import { useEvaluateCell } from '../../hooks/useEvaluateCell.ts';
+import { useSendChat } from '../../hooks/useSendChat.ts';
 import { CodeEditor } from '../CodeEditor.tsx';
 import type { CodingBlock as CodingBlockType } from '../../models/AssignmentSessionModel.ts';
 
@@ -14,7 +16,9 @@ interface Props {
 export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
   const isDark = useThemeStore((s) => s.isDark);
   const updateStudentContent = useAssignmentSessionStore((s) => s.updateStudentContent);
-  const appendChatMessage = useAssignmentSessionStore((s) => s.appendChatMessage);
+
+  const handleEvaluate = useEvaluateCell(index, 'coding');
+  const { sendChat, loading: chatLoading } = useSendChat(index);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatDraft, setChatDraft] = useState('');
@@ -76,7 +80,7 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
   function handleSendChat() {
     const trimmed = chatDraft.trim();
     if (!trimmed) return;
-    appendChatMessage(index, { role: 'user', content: trimmed });
+    sendChat(trimmed);
     setChatDraft('');
   }
 
@@ -181,7 +185,7 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
           Chat
         </ActionButton>
         <ActionButton
-          onClick={() => {}}
+          onClick={handleEvaluate}
           disabled={evaluateDisabled}
           isDark={isDark}
           primary
@@ -192,7 +196,11 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
 
       {/* Feedback area */}
       {evalFailed && block.evalState.status === 'failed' && (
-        <FeedbackPanel feedback={block.evalState.feedback} isDark={isDark} />
+        <FeedbackPanel
+          feedback={block.evalState.feedback}
+          testOutput={block.evalState.testOutput}
+          isDark={isDark}
+        />
       )}
 
       {/* Chat drawer */}
@@ -203,6 +211,7 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
           onDraftChange={setChatDraft}
           onSend={handleSendChat}
           onClose={() => setChatOpen(false)}
+          loading={chatLoading}
           isDark={isDark}
         />
       )}
@@ -210,7 +219,7 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
   );
 }
 
-function FeedbackPanel({ feedback, isDark }: { feedback: string; isDark: boolean }) {
+function FeedbackPanel({ feedback, testOutput, isDark }: { feedback: string; testOutput?: string; isDark: boolean }) {
   return (
     <div
       style={{
@@ -226,6 +235,24 @@ function FeedbackPanel({ feedback, isDark }: { feedback: string; isDark: boolean
     >
       <div style={{ fontWeight: 700, marginBottom: '4px' }}>Feedback</div>
       {feedback}
+      {testOutput && (
+        <pre
+          style={{
+            marginTop: '10px',
+            padding: '8px 10px',
+            borderRadius: '6px',
+            background: isDark ? '#1a1008' : '#fef3e2',
+            border: `1px solid ${isDark ? '#6b3a18' : '#f3c58d'}`,
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-all',
+            color: isDark ? '#ffd7b2' : '#7c2d12',
+          }}
+        >
+          {testOutput}
+        </pre>
+      )}
     </div>
   );
 }
@@ -236,6 +263,7 @@ function ChatDrawer({
   onDraftChange,
   onSend,
   onClose,
+  loading,
   isDark,
 }: {
   history: { role: 'user' | 'assistant'; content: string }[];
@@ -243,6 +271,7 @@ function ChatDrawer({
   onDraftChange: (v: string) => void;
   onSend: () => void;
   onClose: () => void;
+  loading: boolean;
   isDark: boolean;
 }) {
   const border = isDark ? '#3c3c3c' : '#d0d7de';
@@ -317,11 +346,17 @@ function ChatDrawer({
         ))}
       </div>
 
+      {loading && (
+        <div style={{ padding: '0 14px 8px', fontSize: '13px', color: textMuted, fontStyle: 'italic' }}>
+          Coach is thinking…
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '8px', padding: '10px 14px' }}>
         <input
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSend(); } }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !loading) { e.preventDefault(); onSend(); } }}
+          disabled={loading}
           placeholder="Ask for a hint or clarification…"
           style={{
             flex: 1,
@@ -332,17 +367,19 @@ function ChatDrawer({
             color: textMain,
             fontSize: '14px',
             outline: 'none',
+            opacity: loading ? 0.6 : 1,
           }}
         />
         <button
           onClick={onSend}
+          disabled={loading}
           style={{
             border: 'none',
             borderRadius: '999px',
             padding: '8px 16px',
-            background: '#3b82f6',
-            color: '#fff',
-            cursor: 'pointer',
+            background: loading ? (isDark ? '#2a2a2a' : '#e5e7eb') : '#3b82f6',
+            color: loading ? (isDark ? '#6b7280' : '#9ca3af') : '#fff',
+            cursor: loading ? 'not-allowed' : 'pointer',
             fontWeight: 700,
             fontSize: '14px',
           }}

@@ -2,7 +2,7 @@ export type EvalState =
   | { status: 'idle' }
   | { status: 'running' }
   | { status: 'passed' }
-  | { status: 'failed'; feedback: string };
+  | { status: 'failed'; feedback: string; testOutput?: string };
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

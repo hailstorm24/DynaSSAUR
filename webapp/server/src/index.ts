@@ -1,6 +1,12 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
+import Anthropic from '@anthropic-ai/sdk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -14,6 +20,94 @@ app.use((_req, res, next) => {
 });
 
 app.use(express.json({ limit: '4mb' }));
+
+// ── Python test runner helpers ────────────────────────────────────────────────
+
+function buildRunnerScript(studentCode: string, testsCode: string, testFunctions: string[]): string {
+  const fnList = JSON.stringify(testFunctions);
+  return `import sys
+
+# ---- student code ----
+${studentCode}
+
+# ---- test definitions ----
+${testsCode}
+
+# ---- harness ----
+_failed = []
+for _fn_name in ${fnList}:
+    try:
+        globals()[_fn_name]()
+        print(f'PASS: {_fn_name}')
+    except Exception as _e:
+        _failed.append(_fn_name)
+        _msg = str(_e)
+        print(f'FAIL: {_fn_name}')
+        print(type(_e).__name__ + (': ' + _msg if _msg else ''))
+
+sys.exit(1 if _failed else 0)
+`;
+}
+
+async function runTests(
+  studentCode: string,
+  testsCode: string,
+  testFunctions: string[],
+): Promise<{ allPassed: boolean; output: string }> {
+  const tmpFile = join(tmpdir(), `dynassaur-runner-${randomUUID()}.py`);
+  writeFileSync(tmpFile, buildRunnerScript(studentCode, testsCode, testFunctions), 'utf8');
+
+  return new Promise((resolve) => {
+    let output = '';
+    const python = spawn('python3', [tmpFile], { timeout: 10_000 });
+
+    python.stdout.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+    python.stderr.on('data', (chunk: Buffer) => { output += chunk.toString(); });
+
+    python.on('close', (code) => {
+      try { unlinkSync(tmpFile); } catch { /* ignore cleanup errors */ }
+      resolve({ allPassed: code === 0, output: output.trim() });
+    });
+
+    python.on('error', (err) => {
+      try { unlinkSync(tmpFile); } catch { /* ignore cleanup errors */ }
+      resolve({ allPassed: false, output: `Failed to start Python: ${err.message}` });
+    });
+  });
+}
+
+// ── Capability 3: Coding feedback generation (scaffolded) ────────────────────
+// TODO: Replace scaffold body with a real Anthropic messages.create call.
+async function generateCodingFeedback(testOutput: string): Promise<string> {
+  // Scaffold — drop in the real Claude call here when ready:
+  //
+  // const anthropic = new Anthropic();
+  // const msg = await anthropic.messages.create({
+  //   model: 'claude-sonnet-4-6',
+  //   max_tokens: 400,
+  //   messages: [{
+  //     role: 'user',
+  //     content:
+  //       'A student submitted Python code that failed automated tests.\n\n' +
+  //       'Test output:\n```\n' + testOutput + '\n```\n\n' +
+  //       'Write 2–3 sentences of helpful feedback: explain what went wrong and ' +
+  //       'give a concrete hint for fixing it. Do not reveal test internals. ' +
+  //       'Address the student directly.',
+  //   }],
+  // });
+  // return (msg.content[0] as Anthropic.TextBlock).text;
+
+  const lines = testOutput.split('\n').filter(Boolean);
+  const failures = lines.filter((l) => l.startsWith('FAIL:'));
+  if (failures.length === 0) {
+    return 'Your code raised an unexpected error. Check the output above for details.';
+  }
+  const names = failures.map((l) => l.replace('FAIL:', '').trim());
+  return (
+    `${names.length} test${names.length > 1 ? 's' : ''} failed: ${names.join(', ')}. ` +
+    'Review your implementation and make sure it handles all the cases described in the instructions.'
+  );
+}
 
 // ─── Shared context shape (all AI routes receive this) ────────────────────────
 //
@@ -59,38 +153,49 @@ You'll work through a series of planning and coding steps. Each step must be eva
 // Returns: { pass: boolean; feedback?: string }
 //   pass=true  → caller triggers Capability 5 (next-step)
 //   pass=false → feedback string shown inline below the cell
-app.post('/api/cell/evaluate', (req, res) => {
-  const { cellType = 'planning', cellIndex = 0 } = req.body as {
+app.post('/api/cell/evaluate', async (req, res) => {
+  const { cellType = 'planning', cellIndex = 0, files, blocks } = req.body as {
     cellType?: 'planning' | 'coding';
     cellIndex?: number;
+    files?: { assignment: string; solution: string; tests: string };
+    blocks?: Array<{ type: string; studentContent?: string; testFunctions?: string[] }>;
   };
 
-  // Placeholder: pass 60% of the time so both paths are exercisable
-  const pass = Math.random() > 0.4;
+  // ── Coding path: real test runner ─────────────────────────────────────────
+  if (cellType === 'coding') {
+    const block = blocks?.[cellIndex];
+    const studentCode = block?.studentContent ?? '';
+    const testFunctions = block?.testFunctions ?? [];
+    const testsCode = files?.tests ?? '';
 
+    try {
+      const { allPassed, output } = await runTests(studentCode, testsCode, testFunctions);
+      if (allPassed) {
+        res.json({ pass: true });
+        return;
+      }
+      const feedback = await generateCodingFeedback(output);
+      res.json({ pass: false, feedback, testOutput: output });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Test runner failed.';
+      res.json({ pass: false, feedback: `Could not run tests: ${msg}` });
+    }
+    return;
+  }
+
+  // ── Planning path: placeholder (Capability 2 not yet implemented) ─────────
+  const pass = Math.random() > 0.4;
   if (pass) {
     res.json({ pass: true });
     return;
   }
 
-  // Capability 3 placeholder feedback
   const planningFeedback = [
     'Your plan is missing a description of the data structures you intend to use. Add a short note about what variables or collections will hold the key state.',
     'The plan doesn\'t explain how edge cases (empty input, negative numbers) will be handled. Revise to include that.',
     'Good start, but the steps are too vague. Break down step 2 into at least two more concrete sub-steps.',
   ];
-
-  const codingFeedback = [
-    `Test failed at step ${cellIndex + 1}. Your function returned the wrong value for an empty input — check your base case.`,
-    'One or more tests failed. Make sure you\'re returning a value, not just printing it.',
-    'Tests failed. Hint: double-check how you\'re handling the loop termination condition.',
-  ];
-
-  const feedback = cellType === 'coding'
-    ? codingFeedback[Math.floor(Math.random() * codingFeedback.length)]
-    : planningFeedback[Math.floor(Math.random() * planningFeedback.length)];
-
-  res.json({ pass: false, feedback });
+  res.json({ pass: false, feedback: planningFeedback[Math.floor(Math.random() * planningFeedback.length)] });
 });
 
 // ── Capability 4: Chatbot Coach ───────────────────────────────────────────────
@@ -124,8 +229,9 @@ app.post('/api/cell/chat', (req, res) => {
 app.post('/api/cell/next-step', (req, res) => {
   const { cellIndex = 0 } = req.body as { cellIndex?: number };
 
-  // Placeholder: end session after 5 steps
-  if (cellIndex >= 4) {
+  // Placeholder: min 3 steps, max 10; end probability doubles each step after step 3
+  // (step 3: 1%, 4: 2%, 5: 4%, 6: 8%, 7: 16%, 8: 32%, 9: 64%, 10+: 100%)
+  if (cellIndex >= 10 || (cellIndex >= 3 && Math.random() < Math.min(1, 0.01 * Math.pow(2, cellIndex - 3)))) {
     res.json({ complete: true });
     return;
   }
@@ -150,7 +256,7 @@ app.post('/api/cell/next-step', (req, res) => {
     : planningInstructions[Math.min(Math.floor(cellIndex / 2), planningInstructions.length - 1)];
 
   const testFunctions = type === 'coding'
-    ? [`test_step_${cellIndex + 1}_basic`, `test_step_${cellIndex + 1}_edge_cases`]
+    ? ['placeholder_test']
     : undefined;
 
   res.json({ type, instruction, testFunctions, complete: false });

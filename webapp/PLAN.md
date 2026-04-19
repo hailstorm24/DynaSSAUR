@@ -273,33 +273,33 @@ User clicks ▶ on Cell N
 ## Implementation Phases
 
 ### Phase 1a — Scaffold + Editor
-- [ ] Vite + React + TypeScript project setup
-- [ ] Zustand stores scaffolded (`NotebookStore`, `CellStore`, `KernelStore`)
-- [ ] Single `Cell` with CodeMirror 6 (Python syntax highlighting)
-- [ ] Static UI renders; no execution yet
+- [x] Vite + React + TypeScript project setup
+- [x] Zustand stores scaffolded (`NotebookStore`, `CellStore`, `KernelStore`)
+- [x] Single `Cell` with CodeMirror 6 (Python syntax highlighting)
+- [x] Static UI renders; no execution yet
 
 ### Phase 1b — Pyodide Integration
-- [ ] Pyodide Web Worker with stdout/stderr capture via postMessage
-- [ ] Kernel loading UX (progress bar, ready/error state)
-- [ ] Output renders below cell; error traceback display (filtered)
+- [x] Pyodide Web Worker with stdout/stderr capture via postMessage
+- [x] Kernel loading UX (progress bar, ready/error state)
+- [x] Output renders below cell; error traceback display (filtered)
 
 ### Phase 2 — Notebook
-- [ ] `NotebookModel` with ordered cell list
-- [ ] Add / delete / reorder cells
-- [ ] Shared kernel state across cells
-- [ ] Execution counter display
-- [ ] Shift+Enter keybinding, Run All
+- [x] `NotebookModel` with ordered cell list
+- [x] Add / delete / reorder cells
+- [x] Shared kernel state across cells
+- [x] Execution counter display
+- [x] Shift+Enter keybinding, Run All
 
 ### Phase 3 — Turtle Graphics
-- [ ] `TurtleCanvas` component in cell output area
-- [ ] `turtle_shim.py` injected into Pyodide namespace
-- [ ] Worker ↔ main thread turtle command protocol
+- [x] `TurtleCanvas` component in cell output area
+- [x] `turtle_shim.py` injected into Pyodide namespace
+- [x] Worker ↔ main thread turtle command protocol
 
 ### Phase 4 — Polish
-- [ ] Express server with COOP/COEP headers (required for `SharedArrayBuffer` / interrupt support)
-- [ ] Inline error highlighting (map traceback line → CodeMirror gutter marker)
-- [ ] Restart Kernel flow (clears Python namespace, resets counters)
-- [ ] Notebook save/load via localStorage or JSON download
+- [x] Express server with COOP/COEP headers (required for `SharedArrayBuffer` / interrupt support)
+- [x] Inline error highlighting (map traceback line → CodeMirror gutter marker)
+- [x] Restart Kernel flow (clears Python namespace, resets counters)
+- [x] Notebook save/load via localStorage or JSON download
 - [x] Dark/light theme toggle — GitHub Light/Dark themes via `@uiw/codemirror-theme-github`;
   toggle button in top-right corner of `NotebookToolbar`; theme state in `useThemeStore`;
   CodeMirror uses a `Compartment` for live theme switching without editor recreation
