@@ -2,7 +2,9 @@ import { useCellStore } from '../stores/cellStore.ts';
 import { useNotebookStore } from '../stores/notebookStore.ts';
 import { useAppStore } from '../stores/appStore.ts';
 import { useAssignmentStore } from '../stores/assignmentStore.ts';
+import { useAssignmentSessionStore, SESSION_STORAGE_KEY } from '../stores/assignmentSessionStore.ts';
 import { serializeNotebook, isValidNotebookData, DEFAULT_SANDBOX_METADATA } from './notebookSerializer.ts';
+import type { AssignmentSessionModel } from '../models/AssignmentSessionModel.ts';
 
 const SANDBOX_KEY = 'dynassaur_notebook';
 
@@ -58,6 +60,29 @@ export function loadSavedNotebook(): void {
   loadSavedSandbox();
 }
 
+let sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function debouncedSessionSave() {
+  if (sessionSaveTimer !== null) clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = setTimeout(() => {
+    sessionSaveTimer = null;
+    const state = useAssignmentSessionStore.getState();
+    const { status, uploadedFiles, blocks, activeBlockIndex } = state;
+    const snapshot: AssignmentSessionModel = { status, uploadedFiles, blocks, activeBlockIndex };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snapshot));
+  }, 500);
+}
+
+export function loadSavedSession(): AssignmentSessionModel | null {
+  const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AssignmentSessionModel;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Subscribe to store changes and auto-save based on current mode.
  * Call once at app startup.
@@ -65,4 +90,5 @@ export function loadSavedNotebook(): void {
 export function initPersistence(): void {
   useCellStore.subscribe(() => debouncedSave());
   useNotebookStore.subscribe(() => debouncedSave());
+  useAssignmentSessionStore.subscribe(() => debouncedSessionSave());
 }

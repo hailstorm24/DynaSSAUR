@@ -1,47 +1,7 @@
 import { useRef, useState } from "react";
-import { useAssignmentStore } from "../stores/assignmentStore.ts";
 import { useAppStore } from "../stores/appStore.ts";
 import { useThemeStore } from "../stores/themeStore.ts";
-import { useCellStore } from "../stores/cellStore.ts";
-import { useNotebookStore } from "../stores/notebookStore.ts";
-import type { NotebookData } from "../utils/notebookSerializer.ts";
-
-// ─── Mock generator ──────────────────────────────────────────────────────────
-// STUB: Replace this function with a real API call to the backend.
-// The backend should accept the three files and return a NotebookData object.
-async function generateFromFiles(
-  mdFile: File,
-  _solutionFile: File,
-  _testFile: File,
-): Promise<NotebookData> {
-  await new Promise((r) => setTimeout(r, 1800)); // simulate network delay
-  const title = mdFile.name.replace(/\.md$/i, "").replace(/[-_]/g, " ");
-  const stepId = (s: string) => `${Date.now()}-${s}`;
-  const ids = [stepId("inst"), stepId("task"), stepId("code"), stepId("fb")];
-  return {
-    metadata: { title, step: 1, totalSteps: 1 },
-    cellIds: ids,
-    cells: {
-      [ids[0]]: {
-        type: "instruction",
-        source: `Welcome to "${title}"!\n\nThis lesson was generated from ${mdFile.name}. Your backend will replace this with the real content parsed from the uploaded files.`,
-      },
-      [ids[1]]: {
-        type: "task",
-        source: "Complete the code block below. Read the instructions carefully before starting.",
-      },
-      [ids[2]]: {
-        type: "code",
-        source: "# Write your solution here\n",
-      },
-      [ids[3]]: {
-        type: "feedback",
-        source: "Verification feedback will appear here after you click Verify.",
-      },
-    },
-  };
-}
-// ─────────────────────────────────────────────────────────────────────────────
+import { useAssignmentSessionStore } from "../stores/assignmentSessionStore.ts";
 
 interface UploadedFile {
   file: File;
@@ -50,10 +10,9 @@ interface UploadedFile {
 
 export function UploadPage() {
   const isDark = useThemeStore((s) => s.isDark);
-  const addAssignment = useAssignmentStore((s) => s.addAssignment);
-  const openAssignment = useAppStore((s) => s.openAssignment);
-  const loadCells = useCellStore((s) => s.loadCells);
-  const loadCellIds = useNotebookStore((s) => s.loadCellIds);
+  const openSession = useAppStore((s) => s.openSession);
+  const initSession = useAssignmentSessionStore((s) => s.initSession);
+  const appendBlock = useAssignmentSessionStore((s) => s.appendBlock);
 
   const [mdFile, setMdFile] = useState<UploadedFile | null>(null);
   const [solutionFile, setSolutionFile] = useState<UploadedFile | null>(null);
@@ -72,13 +31,44 @@ export function UploadPage() {
     setGenerating(true);
     setError(null);
     try {
-      const data = await generateFromFiles(mdFile.file, solutionFile.file, testFile.file);
-      const id = addAssignment(data.metadata.title, data);
-      loadCells(data.cellIds, data.cells);
-      loadCellIds(data.cellIds);
-      openAssignment(id);
-    } catch {
-      setError("Something went wrong generating the assignment. Please try again.");
+      const [assignment, solution, tests] = await Promise.all([
+        mdFile.file.text(),
+        solutionFile.file.text(),
+        testFile.file.text(),
+      ]);
+      const files = { assignment, solution, tests };
+      const res = await fetch("/api/session/init", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files }),
+      });
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const { summaryContent } = await res.json() as { summaryContent: string };
+      initSession(files, { type: "summary", content: summaryContent });
+
+      const stepRes = await fetch("/api/cell/next-step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cellIndex: -1, files, blocks: [] }),
+      });
+      if (!stepRes.ok) throw new Error(`Server error: ${stepRes.status}`);
+      const step = await stepRes.json() as {
+        type: "planning" | "coding";
+        instruction: string;
+        testFunctions?: string[];
+        complete: boolean;
+      };
+      if (!step.complete) {
+        appendBlock(
+          step.type === "coding"
+            ? { type: "coding", instruction: step.instruction, studentContent: "", testFunctions: step.testFunctions ?? [], evalState: { status: "idle" }, chatHistory: [] }
+            : { type: "planning", instruction: step.instruction, studentContent: "", evalState: { status: "idle" }, chatHistory: [] },
+        );
+      }
+
+      openSession();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setGenerating(false);
     }
   }

@@ -8,6 +8,7 @@ interface AppState {
   openSandbox: () => void;
   openUpload: () => void;
   openAssignment: (id: string) => void;
+  openSession: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -16,4 +17,5 @@ export const useAppStore = create<AppState>((set) => ({
   openSandbox: () => set({ view: "sandbox", currentAssignmentId: null }),
   openUpload: () => set({ view: "upload", currentAssignmentId: null }),
   openAssignment: (id) => set({ view: "assignment", currentAssignmentId: id }),
+  openSession: () => set({ view: "assignment", currentAssignmentId: null }),
 }));

@@ -3,6 +3,7 @@ import { useThemeStore } from "../stores/themeStore.ts";
 import { Sidebar } from "./Sidebar.tsx";
 import { UploadPage } from "./UploadPage.tsx";
 import { Notebook } from "./Notebook.tsx";
+import { AssignmentView } from "./assignment/AssignmentView.tsx";
 
 export function AppLayout() {
   const view = useAppStore((s) => s.view);
@@ -20,7 +21,8 @@ export function AppLayout() {
         }}
       >
         {view === "upload" && <UploadPage />}
-        {(view === "sandbox" || view === "assignment") && <Notebook />}
+        {view === "sandbox" && <Notebook />}
+        {view === "assignment" && <AssignmentView />}
       </main>
     </div>
   );
