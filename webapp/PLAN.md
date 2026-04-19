@@ -224,18 +224,33 @@ webapp/
 │   │   │   ├── CellModel.ts
 │   │   │   ├── NotebookModel.ts
 │   │   │   ├── KernelModel.ts
-│   │   │   └── TurtleModel.ts
+│   │   │   ├── TurtleModel.ts
+│   │   │   └── AssignmentSessionModel.ts  # Phase 5: session/block types
 │   │   ├── controllers/
 │   │   │   ├── KernelController.ts
 │   │   │   ├── CellController.ts
 │   │   │   └── NotebookController.ts
+│   │   ├── stores/
+│   │   │   ├── notebookStore.ts
+│   │   │   ├── cellStore.ts
+│   │   │   ├── kernelStore.ts
+│   │   │   ├── themeStore.ts
+│   │   │   ├── appStore.ts                # Phase 5: global view router
+│   │   │   ├── assignmentStore.ts
+│   │   │   └── assignmentSessionStore.ts  # Phase 5: session state
+│   │   ├── hooks/
+│   │   │   ├── useEvaluateCell.ts         # Phase 5: evaluate + next-step
+│   │   │   └── useSendChat.ts             # Phase 5: chat coaching
 │   │   ├── views/
 │   │   │   ├── Notebook.tsx
 │   │   │   ├── Cell.tsx
 │   │   │   ├── CodeEditor.tsx
 │   │   │   ├── CellOutput.tsx
 │   │   │   ├── TurtleCanvas.tsx
-│   │   │   └── NotebookToolbar.tsx
+│   │   │   ├── NotebookToolbar.tsx
+│   │   │   └── assignment/
+│   │   │       ├── PlanningBlock.tsx      # Phase 5: planning step view
+│   │   │       └── CodingBlock.tsx        # Phase 5: coding step view
 │   │   ├── workers/
 │   │   │   └── pyodide.worker.ts  # Pyodide lives here
 │   │   ├── turtle/
@@ -244,7 +259,7 @@ webapp/
 │   └── vite.config.ts
 ├── server/                        # Express backend
 │   └── src/
-│       └── index.ts               # Serves static build; future API routes
+│       └── index.ts               # Static serving + Phase 5 API routes
 ├── PLAN.md
 └── package.json
 ```
@@ -303,3 +318,38 @@ User clicks ▶ on Cell N
 - [x] Dark/light theme toggle — GitHub Light/Dark themes via `@uiw/codemirror-theme-github`;
   toggle button in top-right corner of `NotebookToolbar`; theme state in `useThemeStore`;
   CodeMirror uses a `Compartment` for live theme switching without editor recreation
+
+### Phase 5 — Assignment Flow
+- [x] `appStore` — global view router with three views: `upload`, `sandbox`, `assignment`
+- [x] Upload page — instructor uploads three files: `assignment`, `solution`, `tests` (Python source)
+- [x] `AssignmentSessionModel` — typed data model for the session:
+  - `SummaryBlock` — AI-generated overview shown at the top
+  - `PlanningBlock` — free-text planning step with instruction, `studentContent`, `evalState`, `chatHistory`
+  - `CodingBlock` — code editor step with instruction, `studentContent`, `testFunctions[]`, `evalState`, `chatHistory`
+  - `EvalState` — `idle | running | passed | failed` (with `feedback` and optional `testOutput` when failed)
+- [x] `assignmentSessionStore` — Zustand store managing session state (blocks, activeBlockIndex, status)
+- [x] `PlanningBlock` view — textarea for free-text planning, Evaluate + Chat buttons
+- [x] `CodingBlock` view — CodeMirror editor, inline Run button (spawns own Pyodide worker), Evaluate + Chat buttons
+- [x] Sequential unlock — only the `activeBlockIndex` block is editable; prior blocks are read-only
+- [x] `useEvaluateCell` hook — calls `/api/cell/evaluate`, on pass calls `/api/cell/next-step`
+- [x] `useSendChat` hook — calls `/api/cell/chat`, appends AI response to block's `chatHistory`
+- [x] Chat drawer — collapsible per-block coaching chat with message history
+
+#### Backend API Routes (Phase 5)
+
+| Route | Trigger | Returns |
+|---|---|---|
+| `POST /api/session/init` | After upload | `{ summaryContent: string }` |
+| `POST /api/cell/evaluate` | Evaluate button | `{ pass: bool; feedback?: string; testOutput?: string }` |
+| `POST /api/cell/chat` | Chat send | `{ response: string }` |
+| `POST /api/cell/next-step` | After evaluate passes | `{ type, instruction, testFunctions?, complete }` |
+
+#### Python Test Runner (Phase 5)
+Coding cells are evaluated server-side: the Express server spawns a `python3` subprocess that runs
+the student's code together with the uploaded test suite. The harness calls each `testFunction` by
+name and exits with code 1 if any fail. Test output is captured and optionally shown alongside
+AI-generated feedback.
+
+**Anthropic SDK** is imported (`@anthropic-ai/sdk`) for future AI evaluation of planning blocks and
+richer coding feedback. Current placeholders: `generateCodingFeedback` returns rule-based text;
+planning evaluate and chat routes return canned responses.

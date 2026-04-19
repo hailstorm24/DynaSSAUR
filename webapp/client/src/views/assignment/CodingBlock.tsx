@@ -22,9 +22,13 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatDraft, setChatDraft] = useState('');
-  const [output, setOutput] = useState<string | null>(null);
+  const [stdout, setStdout] = useState<string | null>(null);
+  const [errorLine, setErrorLine] = useState<string | null>(null);
+  const [fullTraceback, setFullTraceback] = useState<string | null>(null);
+  const [traceExpanded, setTraceExpanded] = useState(false);
   const [running, setRunning] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const workerReadyRef = useRef<boolean>(false);
 
   const evalPassed = block.evalState.status === 'passed';
   const evalRunning = block.evalState.status === 'running';
@@ -42,39 +46,53 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
   function handleRun() {
     if (running) return;
     setRunning(true);
-    setOutput('');
-
-    if (workerRef.current) {
-      workerRef.current.terminate();
-    }
-    const worker = new Worker(
-      new URL('../../workers/pyodide.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    workerRef.current = worker;
+    setStdout('');
+    setErrorLine(null);
+    setFullTraceback(null);
+    setTraceExpanded(false);
 
     let accumulated = '';
-    worker.onmessage = (e) => {
-      const msg = e.data;
-      if (msg.type === 'stdout' || msg.type === 'stderr') {
-        accumulated += msg.text;
-        setOutput(accumulated);
-      } else if (msg.type === 'error') {
-        accumulated += msg.text;
-        setOutput(accumulated);
+
+    function attachHandler(worker: Worker) {
+      worker.onmessage = (e) => {
+        const msg = e.data;
+        if (msg.type === 'stdout' || msg.type === 'stderr') {
+          accumulated += msg.text;
+          setStdout(accumulated);
+        } else if (msg.type === 'error') {
+          const raw: string = msg.traceback ?? msg.text ?? '';
+          const lines = raw.trimEnd().split('\n');
+          const lastLine = [...lines].reverse().find((l: string) => l.trim()) ?? raw;
+          setErrorLine(lastLine.trim());
+          setFullTraceback(raw);
+          setRunning(false);
+        } else if (msg.type === 'done') {
+          setRunning(false);
+        } else if (msg.type === 'kernel_ready') {
+          workerReadyRef.current = true;
+          worker.postMessage({ type: 'run', cellId: `assignment-${index}`, code: block.studentContent });
+        }
+      };
+      worker.onerror = () => {
+        setErrorLine('Error: failed to start Python runtime.');
+        setFullTraceback(null);
         setRunning(false);
-        worker.terminate();
-      } else if (msg.type === 'done') {
-        setRunning(false);
-        worker.terminate();
-      } else if (msg.type === 'kernel_ready') {
-        worker.postMessage({ type: 'run', cellId: `assignment-${index}`, code: block.studentContent });
-      }
-    };
-    worker.onerror = () => {
-      setOutput('Error: failed to start Python runtime.');
-      setRunning(false);
-    };
+      };
+    }
+
+    if (!workerRef.current) {
+      const worker = new Worker(
+        new URL('../../workers/pyodide.worker.ts', import.meta.url),
+        { type: 'module' },
+      );
+      workerRef.current = worker;
+      workerReadyRef.current = false;
+      attachHandler(worker);
+      // kernel_ready will trigger the run
+    } else {
+      attachHandler(workerRef.current);
+      workerRef.current.postMessage({ type: 'run', cellId: `assignment-${index}`, code: block.studentContent });
+    }
   }
 
   function handleSendChat() {
@@ -140,18 +158,18 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
         <CodeEditor
           initialValue={block.studentContent}
           onUpdate={(src) => isActive && updateStudentContent(index, src)}
-          onRun={isActive ? handleRun : undefined}
+          onRun={handleRun}
         />
       </div>
 
       {/* Run button + output */}
       <div style={{ padding: '10px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <ActionButton onClick={handleRun} disabled={running || !isActive} isDark={isDark}>
+          <ActionButton onClick={handleRun} disabled={running} isDark={isDark}>
             {running ? '■ Running…' : '▶ Run'}
           </ActionButton>
         </div>
-        {output !== null && (
+        {stdout !== null && (
           <pre
             style={{
               margin: '0 0 10px',
@@ -167,7 +185,28 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
               minHeight: '36px',
             }}
           >
-            {output || ' '}
+            {stdout || ' '}
+            {errorLine !== null && (
+              <span style={{ color: '#ff6b6b' }}>
+                {'\n'}{traceExpanded ? fullTraceback : errorLine}
+                {'\n'}
+                <button
+                  onClick={() => setTraceExpanded((v) => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ff6b6b',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    opacity: 0.7,
+                    padding: '0',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {traceExpanded ? 'hide traceback' : 'show full traceback'}
+                </button>
+              </span>
+            )}
           </pre>
         )}
       </div>
@@ -235,24 +274,36 @@ function FeedbackPanel({ feedback, testOutput, isDark }: { feedback: string; tes
     >
       <div style={{ fontWeight: 700, marginBottom: '4px' }}>Feedback</div>
       {feedback}
-      {testOutput && (
-        <pre
-          style={{
-            marginTop: '10px',
-            padding: '8px 10px',
-            borderRadius: '6px',
-            background: isDark ? '#1a1008' : '#fef3e2',
-            border: `1px solid ${isDark ? '#6b3a18' : '#f3c58d'}`,
-            fontSize: '12px',
-            fontFamily: 'monospace',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all',
-            color: isDark ? '#ffd7b2' : '#7c2d12',
-          }}
-        >
-          {testOutput}
-        </pre>
-      )}
+      {testOutput && (() => {
+        const lines = testOutput.split('\n');
+        const kept: string[] = [];
+        lines.forEach((l, i) => {
+          if (l.startsWith('PASS:') || l.startsWith('FAIL:')) {
+            kept.push(l);
+          } else if (i > 0 && lines[i - 1].startsWith('FAIL:') && l.trim()) {
+            kept.push('  ' + l.trim());
+          }
+        });
+        const display = kept.length > 0 ? kept.join('\n') : lines.filter(Boolean).slice(-2).join('\n');
+        return (
+          <pre
+            style={{
+              marginTop: '10px',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              background: isDark ? '#1a1008' : '#fef3e2',
+              border: `1px solid ${isDark ? '#6b3a18' : '#f3c58d'}`,
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+              color: isDark ? '#ffd7b2' : '#7c2d12',
+            }}
+          >
+            {display}
+          </pre>
+        );
+      })()}
     </div>
   );
 }
