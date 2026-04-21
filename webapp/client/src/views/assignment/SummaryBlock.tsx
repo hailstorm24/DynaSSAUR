@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import type { SummaryBlock as SummaryBlockType } from '../../models/AssignmentSessionModel.ts';
 
@@ -53,10 +54,9 @@ export function SummaryBlock({ block }: Props) {
           color: textMain,
           fontSize: '14px',
           lineHeight: 1.7,
-          whiteSpace: 'pre-wrap',
         }}
       >
-        {block.content}
+        <ReactMarkdown>{block.content}</ReactMarkdown>
       </div>
     </div>
   );
