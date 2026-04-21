@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAppStore } from "../stores/appStore.ts";
 import { useAssignmentStore, type AssignmentEntry } from "../stores/assignmentStore.ts";
+import { useAssignmentSessionStore } from "../stores/assignmentSessionStore.ts";
 import { useCellStore } from "../stores/cellStore.ts";
 import { useNotebookStore } from "../stores/notebookStore.ts";
 import { loadSavedSandbox } from "../utils/persistence.ts";
@@ -17,6 +18,26 @@ function relativeTime(ts: number): string {
   return new Date(ts).toLocaleDateString();
 }
 
+function sessionProgress(entry: AssignmentEntry): string {
+  const blocks = entry.sessionData?.blocks ?? [];
+  if (entry.sessionData?.status === "complete") return "Complete";
+  const nonSummary = blocks.filter((b) => b.type !== "summary");
+  const passed = nonSummary.filter((b) => b.evalState.status === "passed").length;
+  if (nonSummary.length === 0) return "";
+  return `${passed}/${nonSummary.length} steps`;
+}
+
+function handleDownload(entry: AssignmentEntry, e: React.MouseEvent) {
+  e.stopPropagation();
+  const blob = new Blob([JSON.stringify(entry.sessionData, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${entry.title.replace(/\s+/g, "-").toLowerCase()}-session.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function Sidebar() {
   const view = useAppStore((s) => s.view);
   const currentId = useAppStore((s) => s.currentAssignmentId);
@@ -31,6 +52,9 @@ export function Sidebar() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   function handleOpenAssignment(entry: AssignmentEntry) {
+    if (entry.sessionData) {
+      useAssignmentSessionStore.setState({ ...entry.sessionData, apiError: null });
+    }
     loadCells(entry.notebookData.cellIds, entry.notebookData.cells);
     loadCellIds(entry.notebookData.cellIds);
     openAssignment(entry.id);
@@ -150,8 +174,30 @@ export function Sidebar() {
                   </div>
                   <div style={{ fontSize: "11px", color: "#6e7781", marginTop: "2px" }}>
                     {relativeTime(entry.updatedAt)}
+                    {sessionProgress(entry) && (
+                      <span style={{ marginLeft: "6px", color: entry.sessionData?.status === "complete" ? "#3fb950" : "#6e7781" }}>
+                        · {sessionProgress(entry)}
+                      </span>
+                    )}
                   </div>
                 </div>
+                <button
+                  onClick={(e) => handleDownload(entry, e)}
+                  title="Download session"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#6e7781",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    padding: "2px 4px",
+                    borderRadius: "4px",
+                    flexShrink: 0,
+                    opacity: isActive ? 1 : 0,
+                  }}
+                >
+                  ↓
+                </button>
                 <button
                   onClick={(e) => handleDelete(entry.id, e)}
                   title={deleteConfirm === entry.id ? "Click again to confirm" : "Delete"}

@@ -2,6 +2,9 @@ import { useRef, useState } from "react";
 import { useAppStore } from "../stores/appStore.ts";
 import { useThemeStore } from "../stores/themeStore.ts";
 import { useAssignmentSessionStore } from "../stores/assignmentSessionStore.ts";
+import { useAssignmentStore } from "../stores/assignmentStore.ts";
+import { isValidSessionData } from "../models/AssignmentSessionModel.ts";
+import { DEFAULT_NOTEBOOK_DATA } from "../utils/persistence.ts";
 
 interface UploadedFile {
   file: File;
@@ -10,19 +13,22 @@ interface UploadedFile {
 
 export function UploadPage() {
   const isDark = useThemeStore((s) => s.isDark);
-  const openSession = useAppStore((s) => s.openSession);
+  const openAssignment = useAppStore((s) => s.openAssignment);
   const initSession = useAssignmentSessionStore((s) => s.initSession);
   const appendBlock = useAssignmentSessionStore((s) => s.appendBlock);
+  const addAssignment = useAssignmentStore((s) => s.addAssignment);
 
   const [mdFile, setMdFile] = useState<UploadedFile | null>(null);
   const [solutionFile, setSolutionFile] = useState<UploadedFile | null>(null);
   const [testFile, setTestFile] = useState<UploadedFile | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const mdRef = useRef<HTMLInputElement>(null);
   const solutionRef = useRef<HTMLInputElement>(null);
   const testRef = useRef<HTMLInputElement>(null);
+  const restoreRef = useRef<HTMLInputElement>(null);
 
   const allUploaded = mdFile && solutionFile && testFile;
 
@@ -66,10 +72,36 @@ export function UploadPage() {
         );
       }
 
-      openSession();
+      const title = mdFile.name.replace(/\.md$/i, "").trim() || "Assignment";
+      const sessionSnapshot = useAssignmentSessionStore.getState();
+      const id = addAssignment(title, DEFAULT_NOTEBOOK_DATA, {
+        uploadedFiles: sessionSnapshot.uploadedFiles,
+        blocks: sessionSnapshot.blocks,
+        activeBlockIndex: sessionSnapshot.activeBlockIndex,
+        status: sessionSnapshot.status,
+      });
+      openAssignment(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
       setGenerating(false);
+    }
+  }
+
+  async function handleRestoreSession(file: File) {
+    setRestoreError(null);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!isValidSessionData(parsed)) {
+        setRestoreError("Invalid session file. Make sure you're uploading a DynaSSAUR session JSON.");
+        return;
+      }
+      useAssignmentSessionStore.setState({ ...parsed, apiError: null });
+      const title = file.name.replace(/-session\.json$/i, "").replace(/-/g, " ").trim() || "Restored Session";
+      const id = addAssignment(title, DEFAULT_NOTEBOOK_DATA, parsed);
+      openAssignment(id);
+    } catch {
+      setRestoreError("Could not parse the file. Make sure it's a valid JSON file.");
     }
   }
 
@@ -184,6 +216,51 @@ export function UploadPage() {
             <p style={{ textAlign: "center", fontSize: "13px", color: textMuted, margin: 0 }}>
               Upload all three files to enable Generate.
             </p>
+          )}
+        </div>
+
+        {/* Restore from JSON */}
+        <div style={{ textAlign: "center", marginTop: "24px" }}>
+          <input
+            ref={restoreRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleRestoreSession(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            onClick={() => restoreRef.current?.click()}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: textMuted,
+              fontSize: "13px",
+              cursor: "pointer",
+              textDecoration: "underline",
+              padding: 0,
+            }}
+          >
+            or restore a saved session
+          </button>
+          {restoreError && (
+            <div
+              style={{
+                marginTop: "10px",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                background: isDark ? "#2a1113" : "#fff1f2",
+                border: `1px solid ${isDark ? "#8b2e33" : "#ffc8cf"}`,
+                color: isDark ? "#fca5a5" : "#b91c1c",
+                fontSize: "13px",
+                textAlign: "left",
+              }}
+            >
+              {restoreError}
+            </div>
           )}
         </div>
       </div>

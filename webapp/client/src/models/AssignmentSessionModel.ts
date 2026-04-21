@@ -45,3 +45,15 @@ export interface AssignmentSessionModel {
   activeBlockIndex: number;
   status: 'uploading' | 'initializing' | 'active' | 'complete';
 }
+
+export function isValidSessionData(data: unknown): data is AssignmentSessionModel {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return (
+    typeof d.uploadedFiles === 'object' && d.uploadedFiles !== null &&
+    Array.isArray(d.blocks) &&
+    typeof d.activeBlockIndex === 'number' &&
+    typeof d.status === 'string' &&
+    ['uploading', 'initializing', 'active', 'complete'].includes(d.status as string)
+  );
+}

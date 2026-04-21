@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { NotebookData } from "../utils/notebookSerializer.ts";
+import type { AssignmentSessionModel } from "../models/AssignmentSessionModel.ts";
 
 export interface AssignmentEntry {
   id: string;
@@ -7,6 +8,7 @@ export interface AssignmentEntry {
   createdAt: number;
   updatedAt: number;
   notebookData: NotebookData;
+  sessionData: AssignmentSessionModel;
 }
 
 const STORAGE_KEY = "dynassaur_assignments";
@@ -32,8 +34,9 @@ function saveToStorage(assignments: AssignmentEntry[]): void {
 
 interface AssignmentState {
   assignments: AssignmentEntry[];
-  addAssignment: (title: string, notebookData: NotebookData) => string;
+  addAssignment: (title: string, notebookData: NotebookData, sessionData: AssignmentSessionModel) => string;
   updateAssignment: (id: string, notebookData: NotebookData) => void;
+  updateSessionData: (id: string, sessionData: AssignmentSessionModel) => void;
   removeAssignment: (id: string) => void;
   getAssignment: (id: string) => AssignmentEntry | undefined;
 }
@@ -41,10 +44,10 @@ interface AssignmentState {
 export const useAssignmentStore = create<AssignmentState>((set, get) => ({
   assignments: loadFromStorage(),
 
-  addAssignment: (title, notebookData) => {
+  addAssignment: (title, notebookData, sessionData) => {
     const id = generateId();
     const now = Date.now();
-    const entry: AssignmentEntry = { id, title, createdAt: now, updatedAt: now, notebookData };
+    const entry: AssignmentEntry = { id, title, createdAt: now, updatedAt: now, notebookData, sessionData };
     const assignments = [entry, ...get().assignments];
     set({ assignments });
     saveToStorage(assignments);
@@ -54,6 +57,14 @@ export const useAssignmentStore = create<AssignmentState>((set, get) => ({
   updateAssignment: (id, notebookData) => {
     const assignments = get().assignments.map((a) =>
       a.id === id ? { ...a, notebookData, updatedAt: Date.now() } : a,
+    );
+    set({ assignments });
+    saveToStorage(assignments);
+  },
+
+  updateSessionData: (id, sessionData) => {
+    const assignments = get().assignments.map((a) =>
+      a.id === id ? { ...a, sessionData, updatedAt: Date.now() } : a,
     );
     set({ assignments });
     saveToStorage(assignments);

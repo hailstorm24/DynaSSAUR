@@ -6,6 +6,12 @@ import { useAssignmentSessionStore, SESSION_STORAGE_KEY } from '../stores/assign
 import { serializeNotebook, isValidNotebookData, DEFAULT_SANDBOX_METADATA } from './notebookSerializer.ts';
 import type { AssignmentSessionModel } from '../models/AssignmentSessionModel.ts';
 
+export const DEFAULT_NOTEBOOK_DATA = {
+  metadata: DEFAULT_SANDBOX_METADATA,
+  cellIds: [] as string[],
+  cells: {} as Record<string, { source: string; type: import('../models/CellModel.ts').CellType }>,
+};
+
 const SANDBOX_KEY = 'dynassaur_notebook';
 
 function getNotebookSnapshot() {
@@ -70,6 +76,10 @@ function debouncedSessionSave() {
     const { status, uploadedFiles, blocks, activeBlockIndex } = state;
     const snapshot: AssignmentSessionModel = { status, uploadedFiles, blocks, activeBlockIndex };
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snapshot));
+    const { currentAssignmentId } = useAppStore.getState();
+    if (currentAssignmentId) {
+      useAssignmentStore.getState().updateSessionData(currentAssignmentId, snapshot);
+    }
   }, 500);
 }
 
