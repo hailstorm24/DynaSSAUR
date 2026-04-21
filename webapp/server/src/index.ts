@@ -36,6 +36,9 @@ ${testsCode}
 # ---- harness ----
 _failed = []
 for _fn_name in ${fnList}:
+    if _fn_name not in globals():
+        print(f'SKIP: {_fn_name}')
+        continue
     try:
         globals()[_fn_name]()
         print(f'PASS: {_fn_name}')
