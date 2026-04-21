@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, type MutableRefObject } from 'react';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
 import { useEvaluateCell } from '../../hooks/useEvaluateCell.ts';
@@ -11,9 +11,11 @@ interface Props {
   index: number;
   stepNumber: number;
   isActive: boolean;
+  workerRef: MutableRefObject<Worker | null>;
+  workerReadyRef: MutableRefObject<boolean>;
 }
 
-export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
+export function CodingBlock({ block, index, stepNumber, isActive, workerRef, workerReadyRef }: Props) {
   const isDark = useThemeStore((s) => s.isDark);
   const updateStudentContent = useAssignmentSessionStore((s) => s.updateStudentContent);
 
@@ -27,8 +29,6 @@ export function CodingBlock({ block, index, stepNumber, isActive }: Props) {
   const [fullTraceback, setFullTraceback] = useState<string | null>(null);
   const [traceExpanded, setTraceExpanded] = useState(false);
   const [running, setRunning] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
-  const workerReadyRef = useRef<boolean>(false);
 
   const evalPassed = block.evalState.status === 'passed';
   const evalRunning = block.evalState.status === 'running';

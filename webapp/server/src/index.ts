@@ -161,13 +161,18 @@ app.post('/api/cell/evaluate', async (req, res) => {
     cellType?: 'planning' | 'coding';
     cellIndex?: number;
     files?: { assignment: string; solution: string; tests: string };
-    blocks?: Array<{ type: string; studentContent?: string; testFunctions?: string[] }>;
+    blocks?: Array<{ type: string; studentContent?: string; testFunctions?: string[]; evalState?: { status: string } }>;
   };
 
   // ── Coding path: real test runner ─────────────────────────────────────────
   if (cellType === 'coding') {
     const block = blocks?.[cellIndex];
-    const studentCode = block?.studentContent ?? '';
+    const priorCode = (blocks ?? [])
+      .slice(0, cellIndex)
+      .filter((b) => b.type === 'coding' && b.evalState?.status === 'passed')
+      .map((b) => b.studentContent ?? '')
+      .join('\n\n');
+    const studentCode = [priorCode, block?.studentContent ?? ''].filter(Boolean).join('\n\n');
     const testFunctions = block?.testFunctions ?? [];
     const testsCode = files?.tests ?? '';
 

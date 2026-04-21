@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
 import { useAppStore } from '../../stores/appStore.ts';
 import { useThemeStore } from '../../stores/themeStore.ts';
@@ -14,6 +15,9 @@ export function AssignmentView() {
   const setApiError = useAssignmentSessionStore((s) => s.setApiError);
   const openUpload = useAppStore((s) => s.openUpload);
   const isDark = useThemeStore((s) => s.isDark);
+
+  const sharedWorkerRef = useRef<Worker | null>(null);
+  const sharedWorkerReadyRef = useRef<boolean>(false);
 
   const bg = isDark ? '#1e1e1e' : '#f9fafb';
   const textMuted = isDark ? '#9ca3af' : '#6b7280';
@@ -143,6 +147,8 @@ export function AssignmentView() {
                 index={i}
                 stepNumber={step}
                 isActive={isActive}
+                workerRef={sharedWorkerRef}
+                workerReadyRef={sharedWorkerReadyRef}
               />
             );
           }
