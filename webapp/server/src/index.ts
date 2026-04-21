@@ -133,17 +133,21 @@ async function generateCodingFeedback(testOutput: string): Promise<string> {
 app.post('/api/session/init', (_req, res) => {
   const summaryContent = `## Assignment Overview
 
-Welcome! Here is a summary of what you'll be working on in this assignment.
+The project asks you to build a Bulletin Board System (BBS) — essentially a messaging app, but with some unusual constraints. Let's start at the top level.
+You need to support these operations:
 
-**Objective:** Implement the required functions as described in the assignment instructions.
+Connect as a user
+- Post a message
+- Read a message by ID
+Get a summary of messages (optionally filtered)
+Delete a message
+Switch users / Disconnect
 
-**What you'll need:**
-- Read through the assignment requirements carefully
-- Plan your approach before writing any code
-- Test your implementation against the provided test cases
-
-**How this works:**
-You'll work through a series of planning and coding steps. Each step must be evaluated before the next one unlocks. Use the Chat button on any step if you want a hint or guidance.
+Here's the first question to get you thinking:
+In a normal Python program, where would you store the messages so they stick around between function calls?
+Now here's the twist — the assignment forbids you from using lists, dicts, or other data structures to hold messages. It also says messages must persist even after the program exits and restarts.
+Given those two constraints — no in-memory data structures, and persistence across program restarts — where do messages have to live?
+Once you answer that, I'll ask you the next question about how to organize them there.
 
 > *This summary was generated from your uploaded assignment file.*`;
 
@@ -199,9 +203,10 @@ app.post('/api/cell/evaluate', async (req, res) => {
   }
 
   const planningFeedback = [
-    'Your plan is missing a description of the data structures you intend to use. Add a short note about what variables or collections will hold the key state.',
-    'The plan doesn\'t explain how edge cases (empty input, negative numbers) will be handled. Revise to include that.',
-    'Good start, but the steps are too vague. Break down step 2 into at least two more concrete sub-steps.',
+    // 'Your plan is missing a description of the data structures you intend to use. Add a short note about what variables or collections will hold the key state.',
+    // 'The plan doesn\'t explain how edge cases (empty input, negative numbers) will be handled. Revise to include that.',
+    // 'Good start, but the steps are too vague. Break down step 2 into at least two more concrete sub-steps.',
+    'Exactly! Files are the way to go. Now let\'s think about how to organize messages in files. You have a few decisions to make.',
   ];
   res.json({ pass: false, feedback: planningFeedback[Math.floor(Math.random() * planningFeedback.length)] });
 });
@@ -217,11 +222,12 @@ app.post('/api/cell/chat', (req, res) => {
   };
 
   const responses = [
-    `Great question about step ${cellIndex + 1}! Think about what the function needs to return and work backwards from there. What's the simplest input you could test with?`,
-    `For "${message.slice(0, 30)}..." — consider breaking the problem into smaller pieces. What's the very first thing that has to happen?`,
-    'Hint: trace through your logic with a small example by hand before writing any code. What does the output look like for input `[1, 2, 3]`?',
-    `You're on the right track. One thing to double-check: are you modifying the original data or creating a new structure? The assignment likely expects one specific approach.`,
-    'Think about edge cases early — what should happen if the input is empty? What if all values are the same?',
+    // `Great question about step ${cellIndex + 1}! Think about what the function needs to return and work backwards from there. What's the simplest input you could test with?`,
+    // `For "${message.slice(0, 30)}..." — consider breaking the problem into smaller pieces. What's the very first thing that has to happen?`,
+    // 'Hint: trace through your logic with a small example by hand before writing any code. What does the output look like for input `[1, 2, 3]`?',
+    // `You're on the right track. One thing to double-check: are you modifying the original data or creating a new structure? The assignment likely expects one specific approach.`,
+    // 'Think about edge cases early — what should happen if the input is empty? What if all values are the same?',
+    'Here\'s your next question:\nIf you were going to store messages in files, what\'s the simplest possible approach — how many files would you use, and what would go in each one?\nThink about the extremes: one file for everything vs. one file per message. What are the tradeoffs of each approach?', 
   ];
 
   const response = responses[Math.floor(Math.random() * responses.length)];
