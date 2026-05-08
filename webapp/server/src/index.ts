@@ -381,9 +381,10 @@ app.post('/api/cell/next-step', async (req, res) => {
             (completedCodingSteps.length > 0
               ? `Coding steps already completed:\n${JSON.stringify(completedCodingSteps, null, 2)}\n\n`
               : '') +
-            'What is the next coding step from their plan? ' +
+            'What is the next step from their plan? ' +
             'Match the instruction closely to the corresponding chunk in their plan. ' +
             'Include the exact test function names from the test suite that cover this step. ' +
+            'If the next step is a major new section that warrants re-planning before coding, return a planning block instead. ' +
             'If all steps in the plan have been completed, return complete: true.\n\n' +
             'Reply with JSON only:\n' +
             '{"complete": false, "type": "coding", "instruction": "...", "testFunctions": ["fn_name"]}\n' +
