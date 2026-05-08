@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
 import { useEvaluateCell } from '../../hooks/useEvaluateCell.ts';
@@ -91,7 +92,7 @@ export function PlanningBlock({ block, index, stepNumber, isActive }: Props) {
           borderBottom: `1px solid ${border}`,
         }}
       >
-        {block.instruction}
+        <ReactMarkdown>{block.instruction}</ReactMarkdown>
       </div>
 
       {/* Student textarea */}
@@ -181,7 +182,7 @@ function FeedbackPanel({ feedback, isDark }: { feedback: string; isDark: boolean
       }}
     >
       <div style={{ fontWeight: 700, marginBottom: '4px' }}>Feedback</div>
-      {feedback}
+      <ReactMarkdown>{feedback}</ReactMarkdown>
     </div>
   );
 }
@@ -275,7 +276,7 @@ function ChatDrawer({
             <div style={{ fontSize: '11px', color: textMuted, marginBottom: '3px', fontWeight: 700 }}>
               {msg.role === 'user' ? 'You' : 'Coach'}
             </div>
-            {msg.content}
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
           </div>
         ))}
       </div>

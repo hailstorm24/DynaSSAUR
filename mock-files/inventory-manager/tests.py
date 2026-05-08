@@ -1,9 +1,6 @@
 import pytest
 # from solution import add_item, remove_item, get_total_value, find_item
 
-def placeholder_test():
-    assert thirteen == 13, "define variable thirteen = 13"
-
 # --- add_item ---
 
 def test_add_item_basic():

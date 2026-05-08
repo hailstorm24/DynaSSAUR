@@ -1,4 +1,5 @@
 import { useState, type MutableRefObject } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useThemeStore } from '../../stores/themeStore.ts';
 import { useAssignmentSessionStore } from '../../stores/assignmentSessionStore.ts';
 import { useEvaluateCell } from '../../hooks/useEvaluateCell.ts';
@@ -150,7 +151,7 @@ export function CodingBlock({ block, index, stepNumber, isActive, workerRef, wor
           borderBottom: `1px solid ${border}`,
         }}
       >
-        {block.instruction}
+        <ReactMarkdown>{block.instruction}</ReactMarkdown>
       </div>
 
       {/* Code editor */}
@@ -273,7 +274,7 @@ function FeedbackPanel({ feedback, testOutput, isDark }: { feedback: string; tes
       }}
     >
       <div style={{ fontWeight: 700, marginBottom: '4px' }}>Feedback</div>
-      {feedback}
+      <ReactMarkdown>{feedback}</ReactMarkdown>
       {testOutput && (() => {
         const lines = testOutput.split('\n');
         const kept: string[] = [];
@@ -392,7 +393,7 @@ function ChatDrawer({
             <div style={{ fontSize: '11px', color: textMuted, marginBottom: '3px', fontWeight: 700 }}>
               {msg.role === 'user' ? 'You' : 'Coach'}
             </div>
-            {msg.content}
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
           </div>
         ))}
       </div>

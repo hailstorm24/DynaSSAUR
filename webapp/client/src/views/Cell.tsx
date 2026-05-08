@@ -1,3 +1,4 @@
+import ReactMarkdown from "react-markdown";
 import { useCellStore } from "../stores/cellStore.ts";
 import { useNotebookStore } from "../stores/notebookStore.ts";
 import { useThemeStore } from "../stores/themeStore.ts";
@@ -286,7 +287,7 @@ function VerificationPanel({
         <div style={{ fontWeight: 700, marginBottom: "6px" }}>
           {verificationLabel(state)}
         </div>
-        {message || "No feedback yet."}
+        <ReactMarkdown>{message || "No feedback yet."}</ReactMarkdown>
       </div>
     </div>
   );

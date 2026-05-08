@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { useThemeStore } from "../stores/themeStore.ts";
 
 type ChatMessage = {
@@ -125,7 +126,7 @@ export function CoachChatBar() {
                 >
                   {message.role === "user" ? "You" : "Coach"}
                 </div>
-                {message.text}
+                <ReactMarkdown>{message.text}</ReactMarkdown>
               </div>
             ))}
           </div>

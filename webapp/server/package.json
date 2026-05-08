@@ -10,7 +10,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "dotenv": "^17.4.2",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "express-rate-limit": "^8.5.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",

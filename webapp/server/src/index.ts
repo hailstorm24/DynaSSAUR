@@ -8,12 +8,21 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
+import rateLimit from 'express-rate-limit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
 const anthropic = new Anthropic();
+
+const apiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
 
 // Required for SharedArrayBuffer (interrupt support in Phase 4)
 app.use((_req, res, next) => {
@@ -23,6 +32,7 @@ app.use((_req, res, next) => {
 });
 
 app.use(express.json({ limit: '4mb' }));
+app.use('/api/', apiLimiter);
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -337,7 +347,7 @@ app.post('/api/cell/next-step', async (req, res) => {
   };
 
   // After summary: always go to the overall planning step
-  if (cellIndex === 0) {
+  if (cellIndex <= 0) {
     res.json({
       complete: false,
       type: 'planning',
@@ -377,6 +387,7 @@ app.post('/api/cell/next-step', async (req, res) => {
             'If all steps in the plan have been completed, return complete: true.\n\n' +
             'Reply with JSON only:\n' +
             '{"complete": false, "type": "coding", "instruction": "...", "testFunctions": ["fn_name"]}\n' +
+            'or {"complete": false, "type": "planning", "instruction": "..."}\n' +
             'or {"complete": true}',
         },
       ],
